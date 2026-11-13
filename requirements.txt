@@ -1,0 +1,4 @@
+# Later stages add their packages in the PR that first uses them.
+numpy>=1.26
+pytest>=8.0
+ruff>=0.6

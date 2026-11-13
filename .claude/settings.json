@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest *)",
+      "Bash(python -m pytest *)",
+      "Bash(ruff check *)",
+      "Bash(ruff format *)",
+      "Bash(jupyter nbconvert *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push origin main)",
+      "Bash(git push origin main *)"
+    ]
+  }
+}
