@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
+from sklearn.model_selection import GroupKFold
 
 # Folders, relative to the repository root, so that code works from any working directory
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,3 +167,129 @@ def neighbour_pv_share(xy, has_pv, radius):
     n_pv = np.asarray(n_pv, dtype=np.int64) - has_pv
     share = np.divide(n_pv, count, out=np.zeros(len(xy)), where=count > 0)
     return count, share
+
+
+# Columns that must never reach a model: ids, labels, split markers, raw tariff level and
+# fill flag (only the deviation is used), and every heating variable (leakage, see SPEC.md)
+NOT_FEATURES = [
+    "egid", "cutoff", "split", "y", "y_2024", "ggdenr", "gkode", "gkodn",
+    "tariff_total", "tariff_filled",
+]  # fmt: skip
+HEATING_PREFIXES = ("genh", "gwaer", "heat")
+MIN_LEVEL_ROWS = 500  # building types (gklas) with fewer train rows are grouped as "other"
+N_YIELD_BINS = 10
+
+
+def _level_name(value):
+    """Readable level label: 1020.0 -> "1020"."""
+    return str(int(value))
+
+
+def _raw_features(df, params):
+    """Unstandardised feature columns of `df`, using the levels and fills in `params`."""
+    out = {}
+    # Roof: yield decile dummies (end bins catch values outside the train range)
+    yield_bin = np.searchsorted(params["yield_edges"], df["yield_kwh"].to_numpy(), side="right")
+    for i in range(params["n_yield_bins"]):
+        out[f"yield_d{i + 1}"] = (yield_bin == i).astype(float)
+    log_area = np.log(df["suitable_area_m2"].to_numpy())
+    out["log_suitable_area"] = log_area
+    out["log_suitable_area_sq"] = log_area**2
+    out["suitable_share"] = (df["suitable_area_m2"] / df["roof_area_m2"]).to_numpy()
+    for level in params["best_class_levels"]:
+        out[f"best_class_{_level_name(level)}"] = (df["best_class"] == level).to_numpy(float)
+    # Building: dwellings in bins 1, 2, 3, 4 or more, plus missing
+    dwellings = df["ganzwhg"]
+    for level in [1, 2, 3]:
+        out[f"dwellings_{level}"] = (dwellings == level).to_numpy(float)
+    out["dwellings_4plus"] = (dwellings >= 4).to_numpy(float)
+    out["dwellings_missing"] = dwellings.isna().to_numpy(float)
+    for level in params["gkat_levels"]:
+        out[f"gkat_{_level_name(level)}"] = (df["gkat"] == level).to_numpy(float)
+    for level in params["gbaup_levels"]:
+        out[f"gbaup_{_level_name(level)}"] = (df["gbaup"] == level).to_numpy(float)
+    out["gbaup_missing"] = df["gbaup"].isna().to_numpy(float)
+    gklas = df["gklas"]
+    for level in params["gklas_levels"]:
+        out[f"gklas_{_level_name(level)}"] = (gklas == level).to_numpy(float)
+    known = gklas.isin(params["gklas_levels"])
+    out["gklas_other"] = (~known & gklas.notna()).to_numpy(float)
+    out["gklas_missing"] = gklas.isna().to_numpy(float)
+    out["floors"] = df["gastw"].fillna(params["gastw_median"]).to_numpy(float)
+    out["floors_missing"] = df["gastw"].isna().to_numpy(float)
+    out["log_footprint"] = np.log(df["garea"].fillna(params["garea_median"]).to_numpy(float))
+    out["footprint_missing"] = df["garea"].isna().to_numpy(float)
+    # Neighbours and tariff
+    out["nbr_pv_share_100"] = df["nbr_pv_share_100"].to_numpy(float)
+    out["nbr_pv_share_250"] = df["nbr_pv_share_250"].to_numpy(float)
+    out["log1p_nbr_n_250"] = np.log1p(df["nbr_n_250"].to_numpy(float))
+    out["tariff_dev"] = df["tariff_dev"].to_numpy(float)
+    return pd.DataFrame(out, index=df.index)
+
+
+def _check_no_forbidden(columns):
+    """Raise if a heating column is among `columns`."""
+    bad = [c for c in columns if str(c).lower().startswith(HEATING_PREFIXES)]
+    if bad:
+        raise ValueError(f"heating columns are not allowed as features: {bad}")
+
+
+def fit_features(train):
+    """Learn everything the feature matrix needs from the train rows only.
+
+    `train` is the train part of `model_table`. Returns a dictionary of fitted
+    parameters (decile edges of the yield, category levels, medians, and the
+    mean and standard deviation of every column) to pass to `apply_features`.
+    Columns that are constant on train are dropped. Heating columns raise an error.
+    """
+    _check_no_forbidden(train.columns)
+    # Interior decile edges of the yield; duplicates collapse so bins stay non-empty
+    quantiles = np.arange(1, N_YIELD_BINS) / N_YIELD_BINS
+    edges = np.unique(train["yield_kwh"].quantile(quantiles).to_numpy())
+    gklas_counts = train["gklas"].value_counts()
+    params = {
+        "yield_edges": edges,
+        "n_yield_bins": len(edges) + 1,
+        "best_class_levels": sorted(train["best_class"].dropna().unique()),
+        "gkat_levels": sorted(train["gkat"].dropna().unique()),
+        "gbaup_levels": sorted(train["gbaup"].dropna().unique()),
+        "gklas_levels": sorted(gklas_counts[gklas_counts >= MIN_LEVEL_ROWS].index),
+        "gastw_median": float(train["gastw"].median()),
+        "garea_median": float(train["garea"].median()),
+    }
+    raw = _raw_features(train, params)
+    mean = raw.mean()
+    std = raw.std(ddof=0)
+    keep = std[std > 0].index
+    params["columns"] = list(keep)
+    params["mean"] = mean[keep]
+    params["std"] = std[keep]
+    return params
+
+
+def apply_features(df, params):
+    """Standardised feature matrix of `df` with the parameters fitted on train.
+
+    Returns a float DataFrame with readable column names, same index as `df`.
+    Raises if any value is missing or if a heating column is present.
+    """
+    _check_no_forbidden(df.columns)
+    raw = _raw_features(df, params)[params["columns"]]
+    features = (raw - params["mean"]) / params["std"]
+    _check_no_forbidden(features.columns)
+    if features.isna().any().any():
+        raise ValueError("missing values in the feature matrix")
+    return features
+
+
+def grouped_cv(groups, n_splits=5):
+    """Cross-validation folds in which no group (municipality) is split.
+
+    `groups` is an array-like with one group id per row. Returns a list of
+    `(fit_index, validation_index)` pairs of positional row indices from
+    `GroupKFold` (deterministic, no shuffling): each group appears in the
+    validation part of exactly one fold.
+    """
+    groups = np.asarray(groups)
+    folds = GroupKFold(n_splits=n_splits).split(np.zeros(len(groups)), groups=groups)
+    return list(folds)

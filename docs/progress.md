@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T07)
+- Done: `helpers.fit_features`, `apply_features` (51 standardised columns, heating columns raise) and `grouped_cv` (GroupKFold on `ggdenr`) with tests; `lasso` model in 04 (L1 logistic, `balanced`, grouped 5-fold CV over 10 C on a log grid, refit on train); `figures/table_lasso_coef.tex`; `lasso` rows in `metrics.csv`; capture curve with three models.
+- Found: chosen C = 0.1 (top of the grid, on a plateau: mean CV AUC 0.6777, SE 0.0024), 44 of 51 coefficients non-zero; one-SE C = 0.0046 gives 31. Test y: capture_10 0.195 (nbr_share 0.131, random 0.10), ROC AUC 0.664, AP 0.129; test y_2024: capture_10 0.210, AUC 0.675; train (in-sample) AUC 0.682. 04 takes about 100 s (CV fit about 100 s), 02 to 05 about 115 s; two runs give identical files. Scores are not calibrated (mean 0.48 on test against 0.078 observed).
+- Next: T08 (bootstrap intervals).
+
 ## 2026-11-13 (T06)
 - Done: `nbr_share` model (score = `nbr_pv_share_250`) in 04, which now builds one frame per model and writes one sorted `predictions.parquet` (scores float64, 6 decimals); 05 sorts by (split, model, egid) before scoring so ties are broken deterministically.
 - Found: test y capture_10 0.131 (random 0.10, roof_yield 0.073), ROC AUC 0.598, AP 0.099; test y_2024 capture_10 0.133, AUC 0.607; train AUC 0.591. Rounding to 6 decimals left the `roof_yield` rows unchanged. 3,621 distinct scores on test (8% of buildings at 0), but reversing the tie order leaves capture_10 unchanged (0.130846 / 0.133058).
