@@ -1,7 +1,6 @@
 # SPEC: PV adoption in Fribourg residential buildings (v1)
 
-Status: draft for approval, 2026-11-13. Built from the CLAUDE.md draft and the kickoff interview.
-`docs/proposal.md` is not in the repo yet, so this spec has not been checked against the approved proposal.
+Status: approved by Gauthier on 2026-11-13. Not yet checked against the approved proposal, because `docs/proposal.md` is not in the repo.
 
 ## Goal
 Rank Fribourg residential buildings by their probability of a first photovoltaic (PV) installation within two years, using public data only, and report which building traits carry the ranking. Evaluation is out-of-time.
@@ -72,11 +71,14 @@ Raw downloads go to `data/raw/` (git-ignored). Everything below is committed in 
 - Exact construction year (`GBAUJ`) is filled for 37% of residential buildings; period (`GBAUP`) for 97%.
 - Heating leak: among residential buildings without PV at end-2021, 6.5% adopted in 2022-23 when the heating record was dated <= 2021, against 19.2% when it was dated 2022-23.
 - Tariffs 2024, H4: 4 operators, 106 of 119 municipalities under one operator, 7 distinct prices.
+- Roof file (2023 release, surfaces created October 2022): table `SOLKAT_CH_DACH`, upper-case columns (`GWR_EGID`, `FLAECHE`, `KLASSE`, `GSTRAHLUNG`, `STROMERTRAG`); 418,606 roof surfaces kept for Fribourg. 12.5% of residential buildings have no roof record.
+- Pools after all filters: train 56,572 buildings with 4,847 adopters (8.6%); test 51,725 with 4,020 (7.8%); 2,668 adopters in 2024 alone.
+- Baseline 1 (roof yield) ranks below random on the test: ROC AUC 0.48, capture at 10% of 7.3%. Adoption is an inverted U in yield: about 5% in the lowest decile and in the top two, about 9% in between. Adoption falls with the number of dwellings (8.6% for one, 3.9% for four or more) and differs by category (GKAT 1020: 8.5%, 1030: 4.6%, 1040: 4.2%).
 - Sources: plants `data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/csv/2056/ch.bfe.elektrizitaetsproduktionsanlagen.zip` (19 MB); GWR `public.madd.bfs.admin.ch/fr.zip` (43 MB); roofs `data.geo.admin.ch/ch.bfe.solarenergie-eignung-daecher/solarenergie-eignung-daecher/solarenergie-eignung-daecher_2056.gpkg.zip` (1.51 GB); tariffs by SPARQL at `lindas.admin.ch/query`, cube `energy.ld.admin.ch/elcom/electricityprice`.
 
 ## Risks
 1. **Register lag.** FR PV starts: 3,719 in 2024, 2,063 in 2025. How much of the drop is late registration is unknown until feature 9 runs.
-2. **Roof file not opened yet.** Column names, size of the FR extract and the share of buildings without a roof record are unverified.
+2. **Roof coverage.** The roof file is the 2023 release. 12.5% of residential buildings have no roof record and are dropped from the pool; they adopt less (5.0% against 8.6% at the train cut-off). The paper reports this as a limitation.
 3. **Snapshot register.** Building attributes are today's values; demolished buildings are missing.
 4. **Tariff and heating effects are not identified** (see verified facts). The paper must say so.
 5. **Same buildings in train and test.** The test is out-of-time, not out-of-sample across buildings. Train is the 2022-23 boom, test is after it.
