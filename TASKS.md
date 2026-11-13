@@ -24,7 +24,7 @@ Rules for every task (not repeated below):
 | T07 | LASSO logistic with grouped CV | done | T06 | sonnet, medium | 29 Nov | no |
 | T08 | Bootstrap intervals in metrics.csv | done | T07 | sonnet, medium | 29 Nov | no |
 | T09 | Heating sensitivity run | done | T08 | sonnet, medium | 6 Dec | no |
-| T10 | Small MLP | todo | T08 | sonnet, medium | 6 Dec | yes (first) |
+| T10 | Small MLP | done | T08 | sonnet, medium | 6 Dec | yes (first) |
 | T11 | GP on LASSO residuals per grid cell | todo | T07 | sonnet, medium | 6 Dec | no |
 | T12 | PCA and k-means segments | todo | T07 | sonnet, medium | 13 Dec | yes (second) |
 | T13 | Paper figures and tables | todo | T08 to T12 | sonnet, medium | 13 Dec | no |
@@ -80,7 +80,7 @@ Acceptance: `test_no_heating_columns` still passes; `lasso_heating` rows for tes
 
 **T10 Small MLP (cut first).** Goal: do interactions add anything over LASSO?
 Files: code/04_model.ipynb, code/05_figures.ipynb, data/processed/predictions.parquet, figures/metrics.csv.
-Facts: same feature matrix as T07; `MLPClassifier(hidden_layer_sizes=(16,), early_stopping=True, random_state=0, max_iter=200)`, no tuning. Float results may differ between Python 3.13 (container) and 3.12 (CI): if CI diffs, round MLP scores to 4 decimals; if it still diffs, stop and report.
+Facts: same feature matrix as T07; `MLPClassifier(hidden_layer_sizes=(16,), random_state=0)`, no tuning; epoch count chosen by validation ROC AUC on held-out municipalities of the train split (scikit-learn's accuracy-based `early_stopping` was tried first and under-fitted, see docs/decisions.md). Float results may differ between Python 3.13 (container) and 3.12 (CI): if CI diffs, round MLP scores to 4 decimals; if it still diffs, stop and report.
 Acceptance: `mlp` rows for all three labels with bootstrap columns; fit under 3 minutes; CI green two runs in a row.
 
 **T11 GP on LASSO residuals.** Goal: is spatial structure left after LASSO?
