@@ -1,0 +1,10 @@
+# Later stages add their packages in the PR that first uses them.
+numpy>=1.26
+pandas>=2.2
+pyarrow>=15.0
+scikit-learn>=1.4
+matplotlib>=3.8
+nbconvert>=7.16
+ipykernel>=6.29
+pytest>=8.0
+ruff>=0.6

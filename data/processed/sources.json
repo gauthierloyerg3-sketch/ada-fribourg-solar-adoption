@@ -1,0 +1,23 @@
+{
+  "ch.bfe.elektrizitaetsproduktionsanlagen.zip": {
+    "downloaded_utc": "2026-11-13T16:25:50+00:00",
+    "last_modified": "Thu, 12 Nov 2026 16:25:05 GMT",
+    "sha256": "00132bd0ee0f4ce90a4961032f9d2a42245dd01f62570f728a60dfc573fbcc5f",
+    "size_bytes": 19480133,
+    "url": "https://data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/csv/2056/ch.bfe.elektrizitaetsproduktionsanlagen.zip"
+  },
+  "fr.zip": {
+    "downloaded_utc": "2026-11-13T16:25:53+00:00",
+    "last_modified": "Fri, 13 Nov 2026 05:02:56 GMT",
+    "sha256": "349b4fd7b48fe425a18c255db9257da8b0ce29b9f0f1a640d191377ac30ae9bd",
+    "size_bytes": 42718433,
+    "url": "https://public.madd.bfs.admin.ch/fr.zip"
+  },
+  "solarenergie-eignung-daecher_2056.gpkg.zip": {
+    "downloaded_utc": "2026-11-13T16:23:44+00:00",
+    "last_modified": "Wed, 19 Apr 2023 13:47:33 GMT",
+    "sha256": "b536f81d329af06cc81af596b035904ea0bee68c6271f1bb97735f8295122156",
+    "size_bytes": 1510073383,
+    "url": "https://data.geo.admin.ch/ch.bfe.solarenergie-eignung-daecher/solarenergie-eignung-daecher/solarenergie-eignung-daecher_2056.gpkg.zip"
+  }
+}

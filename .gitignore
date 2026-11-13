@@ -1,0 +1,34 @@
+# Raw downloads
+data/raw/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments and secrets
+.venv/
+venv/
+env/
+.env
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local assistant settings
+.claude/settings.local.json
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.toc
