@@ -8,6 +8,7 @@ from helpers import (
     has_pv_by,
     make_label,
     neighbour_pv_share,
+    pool_status,
 )
 
 
@@ -123,6 +124,21 @@ def test_build_pool_excludes_small_or_missing_roof():
     assert build_pool(make_buildings(suitable_area_m2=19.9), no_pv, "2021-12-31").empty
     assert build_pool(make_buildings(suitable_area_m2=float("nan")), no_pv, "2021-12-31").empty
     assert not build_pool(make_buildings(suitable_area_m2=20.0), no_pv, "2021-12-31").empty
+
+
+def test_pool_status_reasons_and_priority():
+    no_pv = pd.Series([], dtype="datetime64[ns]")
+    status = lambda **kw: pool_status(make_buildings(**kw), no_pv, "2021-12-31").iloc[0]  # noqa: E731
+    assert status() == "pool"
+    assert status(gbauj=2021.0) == "new_build"
+    assert status(suitable_area_m2=float("nan")) == "no_roof"
+    assert status(suitable_area_m2=5.0) == "small_roof"
+    # New build wins over a missing roof, no roof wins over nothing else
+    assert status(gbauj=2021.0, suitable_area_m2=float("nan")) == "new_build"
+    # A PV on or before the cut-off wins over everything
+    first = pd.Series([pd.Timestamp("2021-12-31")], index=[10])
+    both = make_buildings(gbauj=2021.0, suitable_area_m2=5.0)
+    assert pool_status(both, first, "2021-12-31").iloc[0] == "has_pv"
 
 
 def test_make_label_start_exclusive_end_inclusive():
