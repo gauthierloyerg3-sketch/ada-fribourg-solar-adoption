@@ -6,17 +6,19 @@ This is the only stage that touches the network. Run from the repository root:
     python code/01_get_data.py                      # all sources
     python code/01_get_data.py plants_2026_09       # one source only
 
-Sources: plants, buildings, roofs, plants_2026_09. Buildings and roofs depend on
-each other (roofs are filtered with the building list), so roofs needs buildings.
+Sources: plants, buildings, roofs, plants_2026_09, tariffs. Buildings and roofs depend
+on each other (roofs are filtered with the building list), so roofs needs buildings.
+Tariffs keep the municipalities of buildings_fr.parquet, so they need that file.
 A run of one source only rewrites its own outputs and updates its own entries in
 sources.json.
 
 Inputs (downloaded into data/raw/, skipped if already there):
     plants zip (SFOE), building register zip (FSO), roof GeoPackage zip (SFOE),
-    older plants snapshot zip (SFOE, published 2026-09-16).
+    older plants snapshot zip (SFOE, published 2026-09-16),
+    electricity tariffs (ElCom, SPARQL query to LINDAS, answer saved as CSV).
 Outputs (data/processed/):
     pv_fr.parquet, buildings_fr.parquet, roofs_fr.parquet, pv_fr_2026_09.parquet,
-    sources.json.
+    tariffs_fr.parquet, sources.json.
 
 Downloaded files are untrusted data: they are only read, never executed.
 """
@@ -47,7 +49,29 @@ PLANTS_SEP_URL = (
     "https://data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/"
     "elektrizitaetsproduktionsanlagen/elektrizitaetsproduktionsanlagen_2056.csv.zip"
 )
-SOURCES = ["plants", "buildings", "roofs", "plants_2026_09"]
+LINDAS_URL = "https://lindas.admin.ch/query"
+SOURCES = ["plants", "buildings", "roofs", "plants_2026_09", "tariffs"]
+
+# Tariffs of ElCom: category H4 (household, 4,500 kWh/year), standard product, 2020 to 2025.
+# All municipalities of Switzerland are fetched; canton Fribourg is kept afterwards.
+TARIFF_QUERY = """\
+PREFIX d: <https://energy.ld.admin.ch/elcom/electricityprice/dimension/>
+SELECT ?period ?operator ?municipality ?total ?energy ?gridusage ?charge ?aidfee
+FROM <https://lindas.admin.ch/elcom/electricityprice>
+WHERE {
+  <https://energy.ld.admin.ch/elcom/electricityprice> <https://cube.link/observationSet> ?set .
+  ?set <https://cube.link/observation> ?obs .
+  ?obs d:period ?period ;
+       d:category <https://energy.ld.admin.ch/elcom/electricityprice/category/H4> ;
+       d:product <https://energy.ld.admin.ch/elcom/electricityprice/product/standard> ;
+       d:operator ?operator ;
+       d:municipality ?municipality ;
+       d:total ?total ; d:energy ?energy ; d:gridusage ?gridusage ;
+       d:charge ?charge ; d:aidfee ?aidfee .
+  FILTER (STR(?period) >= "2020" && STR(?period) <= "2025")
+}
+"""
+TARIFF_COLUMNS = ["total", "energy", "gridusage", "charge", "aidfee"]
 
 PLANTS_CSV = "ElectricityProductionPlant.csv"
 BUILDINGS_CSV = "gebaeude_batiment_edificio.csv"
@@ -201,6 +225,55 @@ def write_roofs(zip_path, buildings):
     report(path)
 
 
+def fetch_tariffs(dest):
+    """POST TARIFF_QUERY to LINDAS and save the CSV answer to `dest`; return its source record.
+
+    Skips the request if `dest` exists. The record holds the endpoint, the SHA-256 of the
+    query text, size and SHA-256 of the answer and the UTC time of the request.
+    """
+    if not Path(dest).exists():
+        request = urllib.request.Request(
+            LINDAS_URL,
+            data=TARIFF_QUERY.encode(),
+            headers={"Accept": "text/csv", "Content-Type": "application/sparql-query"},
+        )
+        with urllib.request.urlopen(request, timeout=300) as response:
+            body = response.read()
+        Path(dest).write_bytes(body)
+        downloaded = now_utc()
+    else:
+        mtime = Path(dest).stat().st_mtime
+        downloaded = datetime.fromtimestamp(mtime, UTC).replace(microsecond=0).isoformat()
+    return {
+        "url": LINDAS_URL,
+        "query_sha256": hashlib.sha256(TARIFF_QUERY.encode()).hexdigest(),
+        "size_bytes": Path(dest).stat().st_size,
+        "sha256": sha256_of(dest),
+        "downloaded_utc": downloaded,
+    }
+
+
+def write_tariffs(csv_path):
+    """Tariffs of the municipalities in buildings_fr, one row per municipality and year."""
+    raw = pd.read_csv(csv_path)
+    # Municipality number is the last part of https://ld.admin.ch/municipality/<BFS>
+    raw["bfs_nr"] = raw["municipality"].str.rsplit("/", n=1).str[-1].astype("int64")
+    raw = raw.rename(columns={"period": "year"})
+    # Keep the municipalities of the building register (all of canton Fribourg)
+    buildings = pd.read_parquet(helpers.PROCESSED / "buildings_fr.parquet", columns=["ggdenr"])
+    raw = raw[raw["bfs_nr"].isin(pd.to_numeric(buildings["ggdenr"]).dropna().astype("int64"))]
+    # Unit is inferred to be Rp/kWh (2024 median about 32.4); not stated in the answer.
+    # Where a municipality has several operators in a year, take the mean of each price.
+    grouped = raw.groupby(["bfs_nr", "year"])
+    out = grouped[TARIFF_COLUMNS].mean()
+    out["n_operators"] = grouped["operator"].nunique()
+    out = out.reset_index().sort_values(["bfs_nr", "year"]).reset_index(drop=True)
+    out = out.astype({"bfs_nr": "int64", "year": "int64", "n_operators": "int64"})
+    path = helpers.PROCESSED / "tariffs_fr.parquet"
+    out.to_parquet(path, index=False)
+    report(path)
+
+
 def main(selected):
     helpers.RAW.mkdir(parents=True, exist_ok=True)
     helpers.PROCESSED.mkdir(parents=True, exist_ok=True)
@@ -231,6 +304,11 @@ def main(selected):
     if "roofs" in selected:
         sources[roofs_zip.name] = download(ROOFS_URL, roofs_zip)
         write_roofs(roofs_zip, buildings)
+    # Tariffs come last: they are filtered with the building list written above
+    if "tariffs" in selected:
+        tariffs_csv = helpers.RAW / "tariffs_h4_standard_2020_2025.csv"
+        sources[tariffs_csv.name] = fetch_tariffs(tariffs_csv)
+        write_tariffs(tariffs_csv)
 
     with open(sources_path, "w") as f:
         json.dump(sources, f, indent=2, sort_keys=True)

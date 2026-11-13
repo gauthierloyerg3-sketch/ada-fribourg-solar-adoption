@@ -71,3 +71,18 @@ def test_september_snapshot_has_same_schema_as_current_plants():
 def test_september_snapshot_plant_key_is_unique():
     snapshot = load("pv_fr_2026_09.parquet")
     assert snapshot["xtf_id"].is_unique
+
+
+def test_tariff_key_is_unique():
+    tariffs = load("tariffs_fr.parquet")
+    assert not tariffs.duplicated(["bfs_nr", "year"]).any()
+
+
+def test_tariff_years_2022_and_2024_present():
+    tariffs = load("tariffs_fr.parquet")
+    assert {2022, 2024} <= set(tariffs["year"])
+
+
+def test_tariff_total_has_no_missing_value():
+    tariffs = load("tariffs_fr.parquet")
+    assert tariffs["total"].notna().all()

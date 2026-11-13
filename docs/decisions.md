@@ -4,6 +4,8 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Verified: next-year tariffs are in the ElCom cube before the year starts (2027 is present on 2026-11-13), so the T+1 price is known at T. The model feature will be the deviation from the canton median of the year, not the level. | The level moves from a median of 21.2 Rp/kWh (2022) to 32.4 (2024); a model fitted on the 2022 level would extrapolate on the test. |
+| 2026-11-13 | Tariffs are fetched for all Swiss municipalities (H4, standard, 2020 to 2025) and filtered afterwards to the `ggdenr` of buildings_fr; municipalities with two operators get the mean of each price and `n_operators`. | Simpler and more reliable than a canton filter in SPARQL; matches the task. Unit (Rp/kWh) is inferred, not stated in the answer. |
 | 2026-11-13 | Stage 01 takes source names (`plants`, `buildings`, `roofs`, `plants_2026_09`); default runs all four. A partial run updates only its own entries in `sources.json`. | Registers change daily; a single-source run must not move the other extracts. |
 | 2026-11-13 | Register-lag table counts first installations on population buildings (first PV date per building, in each file separately); a building first dated in one file and not the other counts only where it appears. | Same definition as the labels, so the table speaks to the label undercount. |
 | 2026-11-13 | No more phase gates: sessions go from task to task and stop only before a major decision. The main session runs on the top model tier to check all subagent work. | Gauthier's instruction after Phase 3. |

@@ -26,5 +26,12 @@
     "sha256": "b536f81d329af06cc81af596b035904ea0bee68c6271f1bb97735f8295122156",
     "size_bytes": 1510073383,
     "url": "https://data.geo.admin.ch/ch.bfe.solarenergie-eignung-daecher/solarenergie-eignung-daecher/solarenergie-eignung-daecher_2056.gpkg.zip"
+  },
+  "tariffs_h4_standard_2020_2025.csv": {
+    "downloaded_utc": "2026-11-13T19:52:50+00:00",
+    "query_sha256": "b2bcc4848e45c158e8c61774ec3feac62ea9e10999478b19c6d1f469b766a2f7",
+    "sha256": "a8dc498d22e58c54c330aa9aea95e12794c2cf427f24a898b2a5dc35ced6ccb8",
+    "size_bytes": 1880100,
+    "url": "https://lindas.admin.ch/query"
   }
 }

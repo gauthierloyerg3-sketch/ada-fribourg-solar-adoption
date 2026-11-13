@@ -17,7 +17,7 @@ Rules for every task (not repeated below):
 |---|---|---|---|---|---|---|
 | T01 | Bring SPEC.md up to date | done | none | haiku, low | 22 Nov | no |
 | T03 | September plant snapshot and register-lag table | done | none | sonnet, medium | 22 Nov | no |
-| T02 | Tariff extract from LINDAS | todo | T03 (same file) | sonnet, medium | 22 Nov | no |
+| T02 | Tariff extract from LINDAS | done | T03 (same file) | sonnet, medium | 22 Nov | no |
 | T04 | Neighbour PV share helper and feature | todo | none | sonnet, medium | 22 Nov | no |
 | T05 | Final building table: tariff join, ids, pool-filter table | todo | T02, T04 | sonnet, medium | 22 Nov | no |
 | T06 | Baseline 2: rank by neighbour PV share | todo | T05 | sonnet, medium | 29 Nov | no |
@@ -42,7 +42,7 @@ Files: SPEC.md. Acceptance: status line states what Gauthier confirms (ask; do n
 **T02 Tariff extract from LINDAS.** Goal: `tariffs_fr.parquet` committed, one row per `bfs_nr` x `year`.
 Files: code/01_get_data.py, data/processed/tariffs_fr.parquet, data/processed/sources.json, tests/test_data.py.
 Facts: POST SPARQL to https://lindas.admin.ch/query, header `Accept: text/csv`; graph <https://lindas.admin.ch/elcom/electricityprice>, cube <https://energy.ld.admin.ch/elcom/electricityprice>; dimensions under .../electricityprice/dimension/: period, category (.../category/H4), product (standard), operator, municipality (https://ld.admin.ch/municipality/<BFS>), total, energy, gridusage, charge, aidfee. opendata.swiss returns 403 from cloud sessions. Fetch years 2020 to 2025 only. Two municipalities have two operators: keep the mean and an `n_operators` column.
-Acceptance: test that (`bfs_nr`, `year`) is unique and 2022 and 2024 are present; 2024 has 119 municipalities and 7 distinct `total` values; `sources.json` has a tariff entry (query text hash, time). Network run done once in the session; CI does not run 01.
+Acceptance: test that (`bfs_nr`, `year`) is unique and 2022 and 2024 are present; 2024 has 117 municipalities (119 rows before averaging two operators) and 7 distinct `total` values; `sources.json` has a tariff entry (query text hash, time). Network run done once in the session; CI does not run 01.
 
 **T03 September plant snapshot and register-lag table.** Goal: count how many plants with a 2024 or 2025 start were registered between 16 Sep and 12 Nov 2026.
 Files: code/01_get_data.py, data/processed/pv_fr_2026_09.parquet, data/processed/sources.json, code/03_features.ipynb, figures/table_register_lag.tex, tests/test_data.py.
@@ -56,8 +56,8 @@ Acceptance: unit test where a neighbour PV dated T + 1 day is not counted and on
 
 **T05 Final building table.** Goal: the 22 Nov building table: roof aggregates, neighbour share, tariff, labels, ids for CV and maps.
 Files: code/03_features.ipynb, data/processed/model_table.parquet, figures/table_pool_filters.tex, tests/test_data.py.
-Facts: tariff known at T is the year T+1 price (ElCom publishes next-year tariffs by end of summer): 2022 for train, 2024 for test; record this in decisions.md and flag it in the PR for Gauthier. GWR municipalities 2056 and 2239 have no tariff row (probably mergers): map to the successor BFS number if it can be shown, else canton median plus a `tariff_missing` flag. Add `ggdenr`, `gkode`, `gkodn` as id columns (not features).
-Acceptance: `tariff_total` has no missing value; pool-filter table shows, at the train cut-off, 67,482 at risk, 4,049 new builds (21.7%), 5,567 without roof record (5.0%), 1,294 small roof (4.4%), 56,572 kept (8.6%), plus the same for test; pool sizes 56,572 and 51,725 unchanged.
+Facts: tariff known at T is the year T+1 price (ElCom publishes next-year tariffs by end of summer): 2022 for train, 2024 for test; record this in decisions.md and flag it in the PR for Gauthier. Missing tariff rows (found in T02): 2056 Fétigny-Ménières and 2239 Grolley-Ponthaux in every year, and 2138 Jaun in 2022 only (1,464 population buildings in 2022, 1,141 in 2024). The raw answer (data/raw, or re-run `python code/01_get_data.py tariffs`) holds pre-merger numbers 2016, 2027, 2200, 2217, 2259, 2260, all under operator 609 at the canton median in 2022 and 2024, so fill the three municipalities with the canton median of the year and set a `tariff_filled` flag; do not build a merger mapping. The price level shifts between cut-offs (median 21.2 in 2022, 32.4 in 2024), so the feature is `tariff_dev` = total minus the canton median of that year (keep `tariff_total` as an id-like column, not a model feature); record this in decisions.md. Add `ggdenr`, `gkode`, `gkodn` as id columns (not features).
+Acceptance: `tariff_total` and `tariff_dev` have no missing value; `tariff_dev` is 0 for at least 100 municipalities per cut-off; pool-filter table shows, at the train cut-off, 67,482 at risk, 4,049 new builds (21.7%), 5,567 without roof record (5.0%), 1,294 small roof (4.4%), 56,572 kept (8.6%), plus the same for test; pool sizes 56,572 and 51,725 unchanged.
 
 **T06 Baseline 2.** Goal: rank by neighbour PV share at 250 m (declared here, not chosen on test).
 Files: code/04_model.ipynb, code/05_figures.ipynb, data/processed/predictions.parquet, figures/metrics.csv, figures/capture_curve.pdf.
@@ -65,7 +65,7 @@ Acceptance: metrics.csv has `nbr_share` rows for train y, test y, test y_2024; r
 
 **T07 LASSO logistic with grouped CV.** Goal: the headline model, scored on the test pool.
 Files: code/helpers.py (`grouped_cv`, feature-matrix builder), tests/test_helpers.py, code/04_model.ipynb, code/05_figures.ipynb, data/processed/predictions.parquet, figures/metrics.csv, figures/table_lasso_coef.tex.
-Facts: yield is an inverted U (about 5% in the lowest and top two deciles, 9% between): use train-quantile decile bins for yield and log area plus its square; dwellings binned 1, 2, 3, 4+; one-hot `gkat`, `gbaup`; neighbour shares; tariff. Missing `gastw`/`garea`: train median plus flag. Standardise on train. `LogisticRegressionCV(penalty="l1", solver="liblinear", Cs=10, class_weight="balanced", scoring="roc_auc")` with GroupKFold(5) on `ggdenr`. No heating column.
+Facts: yield is an inverted U (about 5% in the lowest and top two deciles, 9% between): use train-quantile decile bins for yield and log area plus its square; dwellings binned 1, 2, 3, 4+; one-hot `gkat`, `gbaup`; neighbour shares; `tariff_dev`. Missing `gastw`/`garea`: train median plus flag. Standardise on train. `LogisticRegressionCV(penalty="l1", solver="liblinear", Cs=10, class_weight="balanced", scoring="roc_auc")` with GroupKFold(5) on `ggdenr`. No heating column.
 Acceptance: test that `grouped_cv` never puts one municipality in two folds; test that the feature list has no heating column; `lasso` rows in metrics.csv for all three labels; coefficient table lists nonzero terms and chosen C; train metrics labelled in-sample in the notebook; CI green.
 
 **T08 Bootstrap intervals.** Goal: 95% percentile intervals for every test metric.
