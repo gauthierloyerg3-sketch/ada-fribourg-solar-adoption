@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T10)
+- Done: `mlp` (16) and `mlp_wide` (32, 16) in 04 on the `lasso` feature matrix, unweighted, scores at 4 decimals; 05 adds both to `metrics.csv` and the gap table, `mlp` to the capture curve. Stopping rule: 60 epochs on 80% of the train municipalities, best validation ROC AUC epoch, refit on the whole train split (best epoch 18 and 9). The first version used scikit-learn's accuracy-based `early_stopping` (stopped after 12 iterations, under-fitted, in-sample AUC 0.609 and 0.654) and was replaced on train-side evidence. Existing rows, scores and tables unchanged.
+- Found: the networks match the LASSO within noise. Test y: capture_10 0.194 (`mlp`), 0.192 (`mlp_wide`) against 0.195 (`lasso`); ROC AUC 0.661, 0.661 against 0.664; gaps to `lasso` (ROC AUC) -0.003 [-0.009, 0.001] and -0.004 [-0.009, 0.001]. In-sample AUC 0.701 and 0.709 against 0.682, so they fit train slightly better without generalising better. Fits identical across processes.
+- Next: T11 (GP on LASSO residuals).
+
 ## 2026-11-13 (T09)
 - Done: `lasso_heat_source` and `lasso_heat_date` (same pipeline and C = 0.1 as `lasso`, no second CV) in 04; heating travels in `heating_clean.parquet` (02) and `heating_features.parquet` (03) and enters only through `helpers.fit_features(..., extra=...)`, the main path still refuses it; `heat_source_group` helper; `figures/table_heating_leak.tex` (03); gap rows in `table_model_gaps.tex`; tests. Main files, `lasso` scores and old metrics rows unchanged.
 - Found: leak is large: adoption 15.3% (train) and 13.1% (test) when the heating record is dated after the cut-off, 6.1% and 7.1% otherwise. Test y: ROC AUC 0.664 (lasso), 0.720 (`lasso_heat_source`), 0.720 (`lasso_heat_date`); capture_10 0.195, 0.245, 0.253. `heat_source` alone carries the gain (heat pump 17.8% and undetermined 13.6% adoption in the train pool, oil 3.5%), the date flag adds little on top. 04 about 130 s, 02 to 05 about 3.5 min.
