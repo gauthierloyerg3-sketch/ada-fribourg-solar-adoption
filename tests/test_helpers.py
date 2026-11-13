@@ -10,6 +10,7 @@ from helpers import (
     fit_features,
     grouped_cv,
     has_pv_by,
+    heat_source_group,
     make_label,
     neighbour_pv_share,
     pool_status,
@@ -330,3 +331,67 @@ def test_cluster_bootstrap_draws_whole_groups_k_times():
         assert np.array_equal(rows, times_drawn.astype(int)[groups])
         # Ascending order: copies of a row are adjacent
         assert np.all(np.diff(idx) >= 0)
+
+
+def add_heating(df, seed=1):
+    """Add the heating columns the sensitivity run reads to a synthetic model table."""
+    rng = np.random.default_rng(seed)
+    out = df.copy()
+    out["heat_source"] = rng.choice(["oil", "gas", "heat_pump", "missing"], len(df))
+    out["heat_updated_after"] = rng.integers(0, 2, len(df))
+    out["heat_date_missing"] = rng.integers(0, 2, len(df))
+    return out
+
+
+def test_main_path_still_refuses_heating_columns_in_the_extended_table():
+    train = add_heating(make_model_table())
+    # Without `extra`, any heating column raises, including the new ones
+    with pytest.raises(ValueError):
+        fit_features(train)
+    params = fit_features(
+        train.drop(columns=["heat_source", "heat_updated_after", "heat_date_missing"])
+    )
+    with pytest.raises(ValueError):
+        apply_features(train, params)
+
+
+def test_sensitivity_path_accepts_only_the_named_heating_columns():
+    train = add_heating(make_model_table())
+    names = ["heat_source", "heat_updated_after", "heat_date_missing"]
+    params = fit_features(train, extra=names)
+    x = apply_features(train, params)
+    assert {"heat_source_oil", "heat_source_gas", "heat_updated_after"} <= set(x.columns)
+    main = apply_features(train.drop(columns=names), fit_features(train.drop(columns=names)))
+    # The main columns are unchanged by the extra block
+    assert np.allclose(x[main.columns].to_numpy(), main.to_numpy())
+    assert x.shape[1] == main.shape[1] + 4 + 2
+    # A raw register column is refused even on the sensitivity path
+    with pytest.raises(ValueError):
+        fit_features(train.assign(genh1=7530), extra=names)
+    with pytest.raises(ValueError):
+        apply_features(train.assign(gwaerzh1=7430), params)
+    # Only the listed names are accepted as extras
+    with pytest.raises(ValueError):
+        fit_features(train, extra=["genh1"])
+
+
+def test_heat_source_group_maps_codes():
+    codes = pd.Series(
+        [7501, 7511, 7513, 7530, 7520, 7542, 7560, 7582, 7500, 7598, 7570, 7550, None]
+    )
+    expected = [
+        "heat_pump",
+        "heat_pump",
+        "heat_pump",
+        "oil",
+        "gas",
+        "wood",
+        "electricity",
+        "district",
+        "none",
+        "undetermined",
+        "other",
+        "other",
+        "missing",
+    ]
+    assert heat_source_group(codes).tolist() == expected

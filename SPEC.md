@@ -56,7 +56,9 @@ Raw downloads go to `data/raw/` (git-ignored). Everything below is committed in 
 | `roofs_fr.parquet` | roof surface in FR, attributes only | `egid` | 01 |
 | `tariffs_fr.parquet` | municipality x year (profile H4) | `bfs_nr`, `year` | 01 |
 | `buildings_clean.parquet` | population building, with roof aggregates | `egid` | 02 |
+| `heating_clean.parquet` | population building: heating codes and record date (sensitivity run only) | `egid` | 02 |
 | `model_table.parquet` | pool building x cut-off: features, `y`, `y_2024` | `egid`, `cutoff` | 03 |
+| `heating_features.parquet` | pool building x cut-off: `heat_source`, `heat_updated_after`, `heat_date_missing` (sensitivity run only) | `egid`, `cutoff` | 03 |
 | `predictions.parquet` | pool building x model: score | `egid`, `cutoff`, `model` | 04 |
 
 ## Interfaces

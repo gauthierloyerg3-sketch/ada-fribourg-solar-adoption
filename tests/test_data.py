@@ -52,6 +52,35 @@ def test_no_heating_columns():
         assert not set(HEATING_COLUMNS) & set(columns)
 
 
+def test_heating_features_have_the_keys_of_the_model_table():
+    table = load("model_table.parquet")
+    heating = load("heating_features.parquet")
+    keys = ["egid", "cutoff"]
+    assert not heating.duplicated(keys).any()
+    merged = table[keys].merge(heating[keys], on=keys, how="outer", indicator=True)
+    assert (merged["_merge"] == "both").all()
+    assert heating["heat_source"].notna().all()
+    assert set(heating["heat_updated_after"].unique()) <= {0, 1}
+    assert set(heating["heat_date_missing"].unique()) <= {0, 1}
+    # No date means not updated after the cut-off
+    assert (heating.loc[heating["heat_date_missing"] == 1, "heat_updated_after"] == 0).all()
+
+
+def test_heating_clean_has_one_row_per_population_building():
+    heating = load("heating_clean.parquet")
+    clean = load("buildings_clean.parquet")
+    assert heating["egid"].is_unique
+    assert set(heating["egid"]) == set(clean["egid"])
+    assert {"genh1", "gwaerzh1", "gwaerdath1"} <= set(heating.columns)
+
+
+def test_main_tables_keep_heating_out_of_the_model_features():
+    # The heating block lives in its own files; the model table has no heating-like column
+    for name in ["buildings_clean.parquet", "model_table.parquet"]:
+        columns = load(name).columns
+        assert not [c for c in columns if str(c).startswith(helpers.HEATING_PREFIXES)]
+
+
 def test_predictions_cover_model_table_once_per_model():
     table = load("model_table.parquet")
     predictions = load("predictions.parquet")

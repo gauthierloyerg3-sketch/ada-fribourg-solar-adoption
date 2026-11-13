@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T09)
+- Done: `lasso_heat_source` and `lasso_heat_date` (same pipeline and C = 0.1 as `lasso`, no second CV) in 04; heating travels in `heating_clean.parquet` (02) and `heating_features.parquet` (03) and enters only through `helpers.fit_features(..., extra=...)`, the main path still refuses it; `heat_source_group` helper; `figures/table_heating_leak.tex` (03); gap rows in `table_model_gaps.tex`; tests. Main files, `lasso` scores and old metrics rows unchanged.
+- Found: leak is large: adoption 15.3% (train) and 13.1% (test) when the heating record is dated after the cut-off, 6.1% and 7.1% otherwise. Test y: ROC AUC 0.664 (lasso), 0.720 (`lasso_heat_source`), 0.720 (`lasso_heat_date`); capture_10 0.195, 0.245, 0.253. `heat_source` alone carries the gain (heat pump 17.8% and undetermined 13.6% adoption in the train pool, oil 3.5%), the date flag adds little on top. 04 about 130 s, 02 to 05 about 3.5 min.
+- Next: T10 (MLP).
+
 ## 2026-11-13 (T08)
 - Done: `helpers.cluster_bootstrap_indices` (whole municipalities drawn with replacement, `default_rng`) with tests; 05 adds `<metric>_lo` / `<metric>_hi` (2.5th and 97.5th percentiles, B = 200, seed 0, same draws for all models) on test rows, and `figures/table_model_gaps.tex` with paired gaps (capture_10, ROC AUC) for lasso vs nbr_share, lasso vs roof_yield, nbr_share vs roof_yield. Old metrics.csv columns are byte-identical.
 - Found: 119 municipalities in the test pool; replicate size 41,252 to 65,929 rows. Test y, lasso capture_10 0.195 [0.179, 0.214] and ROC AUC 0.664 [0.648, 0.678]. Paired gap lasso minus nbr_share: capture_10 0.064 [0.048, 0.079], ROC AUC 0.066 [0.054, 0.079], so the LASSO beats both baselines by more than the sampling noise on the test pool. Municipality clustering widens the lasso capture_10 interval to 0.035 against 0.020 for a plain building bootstrap. 05 takes about 40 s; two runs give identical files.

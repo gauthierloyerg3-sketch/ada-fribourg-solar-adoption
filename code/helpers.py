@@ -176,6 +176,32 @@ NOT_FEATURES = [
     "tariff_total", "tariff_filled",
 ]  # fmt: skip
 HEATING_PREFIXES = ("genh", "gwaer", "heat")
+# The only heating columns that may enter a model, and only through the explicit `extra`
+# argument of `fit_features` (the heating sensitivity run, see docs/decisions.md)
+HEATING_EXTRA_CATEGORICAL = ["heat_source"]
+HEATING_EXTRA_FLAGS = ["heat_updated_after", "heat_date_missing"]
+HEATING_EXTRA_ALL = HEATING_EXTRA_CATEGORICAL + HEATING_EXTRA_FLAGS
+# Register codes of the main heating's energy source (GENH1, labels from the register's
+# code list) grouped into coarse sources. Codes not listed here are "other".
+HEAT_SOURCE_CODES = {
+    7500: "none",
+    7501: "heat_pump",  # air
+    7510: "heat_pump",  # geothermal (generic), probe 7511, coil 7512
+    7511: "heat_pump",
+    7512: "heat_pump",
+    7513: "heat_pump",  # water
+    7520: "gas",
+    7530: "oil",
+    7540: "wood",  # generic, logs 7541, pellets 7542, chips 7543
+    7541: "wood",
+    7542: "wood",
+    7543: "wood",
+    7560: "electricity",
+    7580: "district",  # generic, high 7581 and low 7582 temperature
+    7581: "district",
+    7582: "district",
+    7598: "undetermined",
+}  # fmt: skip
 MIN_LEVEL_ROWS = 500  # building types (gklas) with fewer train rows are grouped as "other"
 N_YIELD_BINS = 10
 
@@ -183,6 +209,19 @@ N_YIELD_BINS = 10
 def _level_name(value):
     """Readable level label: 1020.0 -> "1020"."""
     return str(int(value))
+
+
+def heat_source_group(genh1):
+    """Coarse heating source of each GENH1 code (Series in, Series of str out).
+
+    heat_pump (air, geothermal, water), oil, gas, wood, electricity, district,
+    none, undetermined, other (waste heat, solar thermal, other); a missing code
+    gives "missing".
+    """
+    codes = pd.Series(genh1)
+    group = codes.map(HEAT_SOURCE_CODES).fillna("other")
+    group[codes.isna()] = "missing"
+    return group
 
 
 def _raw_features(df, params):
@@ -224,25 +263,48 @@ def _raw_features(df, params):
     out["nbr_pv_share_250"] = df["nbr_pv_share_250"].to_numpy(float)
     out["log1p_nbr_n_250"] = np.log1p(df["nbr_n_250"].to_numpy(float))
     out["tariff_dev"] = df["tariff_dev"].to_numpy(float)
+    # Heating block, only for the sensitivity run (params["extra"] is empty for the main model)
+    for name in params["extra"]:
+        if name in HEATING_EXTRA_CATEGORICAL:
+            for level in params["extra_levels"][name]:
+                out[f"{name}_{level}"] = (df[name] == level).to_numpy(float)
+        else:
+            out[name] = df[name].to_numpy(float)
     return pd.DataFrame(out, index=df.index)
 
 
-def _check_no_forbidden(columns):
-    """Raise if a heating column is among `columns`."""
-    bad = [c for c in columns if str(c).lower().startswith(HEATING_PREFIXES)]
+def _check_no_forbidden(columns, extra=()):
+    """Raise if a heating column is among `columns`, except the names listed in `extra`.
+
+    A column is allowed if it is one of `extra` or one level of it (`name_level`).
+    """
+    bad = [
+        c
+        for c in columns
+        if str(c).lower().startswith(HEATING_PREFIXES)
+        and not any(str(c) == e or str(c).startswith(f"{e}_") for e in extra)
+    ]
     if bad:
         raise ValueError(f"heating columns are not allowed as features: {bad}")
 
 
-def fit_features(train):
+def fit_features(train, extra=None):
     """Learn everything the feature matrix needs from the train rows only.
 
     `train` is the train part of `model_table`. Returns a dictionary of fitted
     parameters (decile edges of the yield, category levels, medians, and the
     mean and standard deviation of every column) to pass to `apply_features`.
-    Columns that are constant on train are dropped. Heating columns raise an error.
+    Columns that are constant on train are dropped. Heating columns raise an error,
+    unless named in `extra` (the sensitivity run only): a list from
+    `HEATING_EXTRA_ALL`; `heat_source` becomes one-hot columns (all levels kept),
+    the flags enter as 0/1; all are standardised like the other columns. Any other
+    heating column still raises.
     """
-    _check_no_forbidden(train.columns)
+    extra = list(extra or [])
+    unknown = [e for e in extra if e not in HEATING_EXTRA_ALL]
+    if unknown:
+        raise ValueError(f"not a heating extra column: {unknown}")
+    _check_no_forbidden(train.columns, extra)
     # Interior decile edges of the yield; duplicates collapse so bins stay non-empty
     quantiles = np.arange(1, N_YIELD_BINS) / N_YIELD_BINS
     edges = np.unique(train["yield_kwh"].quantile(quantiles).to_numpy())
@@ -256,6 +318,12 @@ def fit_features(train):
         "gklas_levels": sorted(gklas_counts[gklas_counts >= MIN_LEVEL_ROWS].index),
         "gastw_median": float(train["gastw"].median()),
         "garea_median": float(train["garea"].median()),
+        "extra": extra,
+        "extra_levels": {
+            name: sorted(train[name].dropna().unique())
+            for name in extra
+            if name in HEATING_EXTRA_CATEGORICAL
+        },
     }
     raw = _raw_features(train, params)
     mean = raw.mean()
@@ -271,12 +339,13 @@ def apply_features(df, params):
     """Standardised feature matrix of `df` with the parameters fitted on train.
 
     Returns a float DataFrame with readable column names, same index as `df`.
-    Raises if any value is missing or if a heating column is present.
+    Raises if any value is missing or if a heating column is present (except the
+    ones the parameters were fitted with through `extra`).
     """
-    _check_no_forbidden(df.columns)
+    _check_no_forbidden(df.columns, params["extra"])
     raw = _raw_features(df, params)[params["columns"]]
     features = (raw - params["mean"]) / params["std"]
-    _check_no_forbidden(features.columns)
+    _check_no_forbidden(features.columns, params["extra"])
     if features.isna().any().any():
         raise ValueError("missing values in the feature matrix")
     return features
