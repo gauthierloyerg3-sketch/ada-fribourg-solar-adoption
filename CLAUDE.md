@@ -8,7 +8,8 @@ The approved proposal belongs in docs/proposal.md and is not in the repo yet. Do
 # Commands
 - Test: `pytest` (run a single test while iterating, e.g. `pytest tests/test_helpers.py -k capture`; full suite before commit)
 - Lint: `ruff check .`
-- Run a stage notebook on a fresh kernel (once stages exist): `jupyter nbconvert --to notebook --execute --inplace code/02_clean.ipynb`
+- Stage 01 (network, about 1.5 GB, optional because its outputs are committed): `python code/01_get_data.py`
+- Run stages 02 to 05 on fresh kernels: `for n in 02_clean 03_features 04_model 05_figures; do jupyter nbconvert --to notebook --execute --output-dir /tmp/nb code/$n.ipynb; done` (data go to data/processed and figures/; `--output-dir` keeps the committed notebooks clean)
 
 # Architecture
 - Five stages, one file each: code/01_get_data.py, 02_clean.ipynb, 03_features.ipynb, 04_model.ipynb, 05_figures.ipynb. Each stage reads only what the previous one saved. Only stage 01 touches the network.

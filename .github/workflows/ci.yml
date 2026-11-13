@@ -21,3 +21,10 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: pytest
+      # Run the stage notebooks in order; they overwrite data/processed and figures in the runner
+      - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/02_clean.ipynb
+      - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/03_features.ipynb
+      - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/04_model.ipynb
+      - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/05_figures.ipynb
+      # Fail if the regenerated metrics differ from the committed file
+      - run: git diff --exit-code figures/metrics.csv

@@ -4,6 +4,15 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Baseline 1 stays as declared (rank by total roof yield on class 3+ surfaces), although it scores below random. No search for a better-looking variant. | It was fixed before seeing results. The inverted-U shape (adoption about 5% in the lowest and the two highest yield deciles, about 9% in between) is a result to report, and it means the LASSO needs a non-linear yield term. |
+| 2026-11-13 | Notebooks are committed with outputs cleared during development; one executed version is committed before submission. | Clean diffs while developing; CI proves they run top to bottom, and the executed copy shows the results to the marker. |
+| 2026-11-13 | `pv_fr.parquet` carries no address, postcode or coordinates. | They are not needed: plants are linked to buildings by EGID. |
+| 2026-11-13 | `data/processed/sources.json` records URL, size, SHA-256, HTTP Last-Modified and download time of each raw file. | The registers change daily; this fixes which version produced the extracts. |
+| 2026-11-13 | Roof columns kept in `roofs_fr.parquet`: objectid, df_uid, egid, flaeche, klasse, neigung, ausrichtung, mstrahlung, gstrahlung, stromertrag, datum_erstellung, datum_aenderung. Names are the file's, lower-cased; `GWR_EGID` becomes `egid`. | The real file has upper-case names (`GWR_EGID`, `FLAECHE`, `KLASSE`, `GSTRAHLUNG`, `STROMERTRAG`); the geometry is not needed. Summer/winter yield, heat and boiler columns are left out to keep the file small. |
+| 2026-11-13 | Roofs are kept for every building of the register (not only the population). | Stage 01 does not know the population yet; the file is 18 MB. |
+| 2026-11-13 | Plants with a missing start date or EGID are ignored by `first_pv_date` (210 plants lack an EGID, none lack a date). | They cannot be dated or linked to a building. |
+| 2026-11-13 | Buildings with roof records but no surface of class 3 or better get `suitable_area_m2` = 0 and `yield_kwh` = 0; buildings with no roof record get missing values. | The pool drops both, but the two cases are reported separately. |
+| 2026-11-13 | The roof file is the 2023 release (surfaces built in October 2022). Buildings built after that have no roof record and fall out of the pool. | It is the only release available; new builds are excluded anyway, but some older buildings may also lack a record. |
 | 2026-11-13 | `capture_at_k` was added during setup. | CI needs one real test, and every later stage uses this metric. |
 | 2026-11-13 | requirements.txt uses lower bounds for now; pin exact versions after the Nuvolos Python version is known. | The Nuvolos Python version is not verified yet. |
 | 2026-11-13 | No `.env.example`. | The project uses no secrets. |
