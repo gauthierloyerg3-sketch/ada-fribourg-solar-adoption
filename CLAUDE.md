@@ -21,8 +21,8 @@ The approved proposal belongs in docs/proposal.md and is not in the repo yet. Do
 # Workflow
 - One task = one branch = one PR into main. Never push to main directly.
 - AI sessions merge their own PR once CI is green; code PRs also need a PASS from the reviewer subagent. Merge commit only (no squash, no force). Report each merge.
-- Phase gates and choices that are Gauthier's (scope, methods) still wait for his OK.
-- Tasks run one at a time, in sequence. No parallel agents.
+- Keep going from task to task without waiting for an OK. Stop and ask only before a major decision (a change of scope, of the research question, of a method in SPEC.md, or anything hard to undo).
+- Tasks run one at a time, in sequence. No parallel agents. The main session orchestrates and checks every subagent result itself (read the diff, re-run the checks, recount key numbers) before a PR is opened.
 - Done = tests pass + output pasted as evidence.
 - Only edit files listed in your task.
 - Decisions go in docs/decisions.md, not here. Do not reopen them unasked.
