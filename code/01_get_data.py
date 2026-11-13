@@ -3,16 +3,25 @@
 Drafted with an AI assistant, see docs/ai_log.md.
 
 This is the only stage that touches the network. Run from the repository root:
-    python code/01_get_data.py
+    python code/01_get_data.py                      # all sources
+    python code/01_get_data.py plants_2026_09       # one source only
+
+Sources: plants, buildings, roofs, plants_2026_09. Buildings and roofs depend on
+each other (roofs are filtered with the building list), so roofs needs buildings.
+A run of one source only rewrites its own outputs and updates its own entries in
+sources.json.
 
 Inputs (downloaded into data/raw/, skipped if already there):
-    plants zip (SFOE), building register zip (FSO), roof GeoPackage zip (SFOE).
+    plants zip (SFOE), building register zip (FSO), roof GeoPackage zip (SFOE),
+    older plants snapshot zip (SFOE, published 2026-09-16).
 Outputs (data/processed/):
-    pv_fr.parquet, buildings_fr.parquet, roofs_fr.parquet, sources.json.
+    pv_fr.parquet, buildings_fr.parquet, roofs_fr.parquet, pv_fr_2026_09.parquet,
+    sources.json.
 
 Downloaded files are untrusted data: they are only read, never executed.
 """
 
+import argparse
 import hashlib
 import json
 import sqlite3
@@ -33,6 +42,12 @@ ROOFS_URL = (
     "https://data.geo.admin.ch/ch.bfe.solarenergie-eignung-daecher/"
     "solarenergie-eignung-daecher/solarenergie-eignung-daecher_2056.gpkg.zip"
 )
+# Older snapshot of the plant register (STAC asset, last updated 2026-09-16)
+PLANTS_SEP_URL = (
+    "https://data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/"
+    "elektrizitaetsproduktionsanlagen/elektrizitaetsproduktionsanlagen_2056.csv.zip"
+)
+SOURCES = ["plants", "buildings", "roofs", "plants_2026_09"]
 
 PLANTS_CSV = "ElectricityProductionPlant.csv"
 BUILDINGS_CSV = "gebaeude_batiment_edificio.csv"
@@ -122,7 +137,7 @@ def report(path):
     print(f"{path.name}: {len(frame)} rows, {megabytes:.1f} MB")
 
 
-def write_plants(zip_path):
+def write_plants(zip_path, name="pv_fr.parquet"):
     """Photovoltaic plants in Fribourg, without address, postcode or coordinates."""
     with zipfile.ZipFile(zip_path) as z, z.open(PLANTS_CSV) as f:
         plants = pd.read_csv(f, encoding="utf-8-sig", dtype=str)
@@ -138,7 +153,7 @@ def write_plants(zip_path):
             "plant_category": plants["PlantCategory"],
         }
     ).reset_index(drop=True)
-    path = helpers.PROCESSED / "pv_fr.parquet"
+    path = helpers.PROCESSED / name
     out.to_parquet(path, index=False)
     report(path)
 
@@ -186,26 +201,37 @@ def write_roofs(zip_path, buildings):
     report(path)
 
 
-def main():
+def main(selected):
     helpers.RAW.mkdir(parents=True, exist_ok=True)
     helpers.PROCESSED.mkdir(parents=True, exist_ok=True)
 
-    # Download the three raw files and record where they came from
+    # Keep the records of sources that are not run now
+    sources_path = helpers.PROCESSED / "sources.json"
+    sources = {}
+    if sources_path.exists():
+        with open(sources_path) as f:
+            sources = json.load(f)
+
+    # Raw file names (the older snapshot gets a distinct name)
     plants_zip = helpers.RAW / "ch.bfe.elektrizitaetsproduktionsanlagen.zip"
+    plants_sep_zip = helpers.RAW / "elektrizitaetsproduktionsanlagen_2026_09.csv.zip"
     buildings_zip = helpers.RAW / "fr.zip"
     roofs_zip = helpers.RAW / "solarenergie-eignung-daecher_2056.gpkg.zip"
-    sources = {
-        plants_zip.name: download(PLANTS_URL, plants_zip),
-        buildings_zip.name: download(BUILDINGS_URL, buildings_zip),
-        roofs_zip.name: download(ROOFS_URL, roofs_zip),
-    }
 
-    # Write the extracts
-    write_plants(plants_zip)
-    buildings = write_buildings(buildings_zip)
-    write_roofs(roofs_zip, buildings)
+    # Download what is needed, record where it came from, write the extracts
+    if "plants" in selected:
+        sources[plants_zip.name] = download(PLANTS_URL, plants_zip)
+        write_plants(plants_zip)
+    if "plants_2026_09" in selected:
+        sources[plants_sep_zip.name] = download(PLANTS_SEP_URL, plants_sep_zip)
+        write_plants(plants_sep_zip, "pv_fr_2026_09.parquet")
+    if "buildings" in selected or "roofs" in selected:
+        sources[buildings_zip.name] = download(BUILDINGS_URL, buildings_zip)
+        buildings = write_buildings(buildings_zip)
+    if "roofs" in selected:
+        sources[roofs_zip.name] = download(ROOFS_URL, roofs_zip)
+        write_roofs(roofs_zip, buildings)
 
-    sources_path = helpers.PROCESSED / "sources.json"
     with open(sources_path, "w") as f:
         json.dump(sources, f, indent=2, sort_keys=True)
         f.write("\n")
@@ -213,4 +239,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "sources",
+        nargs="*",
+        choices=SOURCES,
+        default=SOURCES,
+        help="sources to run (default: all)",
+    )
+    main(parser.parse_args().sources)

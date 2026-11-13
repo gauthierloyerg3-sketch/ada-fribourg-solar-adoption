@@ -4,6 +4,8 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Stage 01 takes source names (`plants`, `buildings`, `roofs`, `plants_2026_09`); default runs all four. A partial run updates only its own entries in `sources.json`. | Registers change daily; a single-source run must not move the other extracts. |
+| 2026-11-13 | Register-lag table counts first installations on population buildings (first PV date per building, in each file separately); a building first dated in one file and not the other counts only where it appears. | Same definition as the labels, so the table speaks to the label undercount. |
 | 2026-11-13 | No more phase gates: sessions go from task to task and stop only before a major decision. The main session runs on the top model tier to check all subagent work. | Gauthier's instruction after Phase 3. |
 | 2026-11-13 | Bootstrap intervals resample whole municipalities, not single buildings. | Neighbours' outcomes are correlated; this is the more conservative choice. Approved with TASKS.md. |
 | 2026-11-13 | Baseline 2 uses the 250 m neighbour radius, fixed before any result. | So that the radius is not picked on the test. Approved with TASKS.md. |

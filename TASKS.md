@@ -16,7 +16,7 @@ Rules for every task (not repeated below):
 | id | title | status | depends on | model, effort | milestone | cuttable |
 |---|---|---|---|---|---|---|
 | T01 | Bring SPEC.md up to date | done | none | haiku, low | 22 Nov | no |
-| T03 | September plant snapshot and register-lag table | todo | none | sonnet, medium | 22 Nov | no |
+| T03 | September plant snapshot and register-lag table | done | none | sonnet, medium | 22 Nov | no |
 | T02 | Tariff extract from LINDAS | todo | T03 (same file) | sonnet, medium | 22 Nov | no |
 | T04 | Neighbour PV share helper and feature | todo | none | sonnet, medium | 22 Nov | no |
 | T05 | Final building table: tariff join, ids, pool-filter table | todo | T02, T04 | sonnet, medium | 22 Nov | no |
