@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T05)
+- Done: `tariff_total`, `tariff_filled`, `tariff_dev` (year T+1 H4 price minus canton median of that year) and id columns `ggdenr`, `gkode`, `gkodn` in `model_table.parquet`; `helpers.pool_status` (reason per building, `build_pool` now uses it); `figures/table_pool_filters.tex`; tests.
+- Found: pool sizes 56,572 / 51,725, earlier columns and metrics.csv unchanged; filter table matches the baseline-1 numbers (new builds adopt 21.7% train and 27.9% test, no roof 5.0% / 5.4%, small roof 4.4% / 3.7%). 3 municipalities filled in train (1,136 pool buildings), 2 in test (784); 88% of pool buildings sit at the canton median (tariff_dev 0), so the tariff effect rests on about 12% of buildings in 6 to 7 price groups.
+- Next: T06 (baseline 2).
+
 ## 2026-11-13 (T04)
 - Done: `helpers.neighbour_pv_share` (cKDTree, count and share, self excluded) and `helpers.has_pv_by` (shared `<= T` rule); `nbr_n_100`, `nbr_pv_share_100`, `nbr_n_250`, `nbr_pv_share_250` in `model_table.parquet` (population buildings as neighbours, PV dated <= T); unit tests and a brute-force data test on 100 sampled pool buildings per cut-off.
 - Found: pool sizes and all earlier columns unchanged; metrics.csv identical; stage 03 runs in about 3 s. Mean share at 250 m 0.111 (train) and 0.186 (test); 1% of pool buildings have no neighbour within 250 m, 4.4 to 4.5% within 100 m. Adoption rises from 4.6% (lowest share quintile) to 11.7% (highest) in train.

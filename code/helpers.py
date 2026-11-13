@@ -77,6 +77,32 @@ def lookup_first_pv(egids, first_pv):
     return pd.Series(dates, index=egids.index)
 
 
+def pool_status(buildings, first_pv, cutoff):
+    """Why each building is in or out of the pool at the cut-off.
+
+    `buildings` and `first_pv` are as in `build_pool`. Returns a Series (same
+    index) with one of: "has_pv", "new_build", "no_roof", "small_roof", "pool".
+    A building gets the first reason that applies, in this order: PV start date
+    <= cutoff (a PV dated exactly on the cut-off counts, one dated after does
+    not); new build (known year >= 2020, or period 8023 with the year missing);
+    no roof record (suitable_area_m2 missing); suitable roof under 20 m2.
+    """
+    cutoff = pd.Timestamp(cutoff)
+    first = lookup_first_pv(buildings["egid"], first_pv)
+    has_pv = first <= cutoff
+    new_year = buildings["gbauj"] >= NEW_BUILD_FROM_YEAR
+    new_period = (buildings["gbaup"] == NEW_BUILD_PERIOD_CODE) & buildings["gbauj"].isna()
+    new_build = new_year | new_period
+    area = buildings["suitable_area_m2"]
+    status = pd.Series("pool", index=buildings.index)
+    # Assign in reverse priority so that the highest-priority reason wins
+    status[area < MIN_SUITABLE_ROOF_M2] = "small_roof"
+    status[area.isna()] = "no_roof"
+    status[new_build] = "new_build"
+    status[has_pv] = "has_pv"
+    return status
+
+
 def build_pool(buildings, first_pv, cutoff):
     """Buildings that can still adopt at the cut-off date.
 
@@ -84,25 +110,14 @@ def build_pool(buildings, first_pv, cutoff):
     (construction year, may be missing), `gbaup` (construction period code)
     and `suitable_area_m2` (missing if the building has no roof record).
     `first_pv` is the output of `first_pv_date`. A building stays in the pool
-    if all three hold:
-    (a) it has no PV start date <= cutoff (a PV dated exactly on the cut-off
-        excludes it; a PV dated after the cut-off does not),
+    if all three hold (see `pool_status`):
+    (a) it has no PV start date <= cutoff,
     (b) it is not a new build: not (gbauj >= 2020), and not (gbaup == 8023
         with gbauj missing),
     (c) suitable_area_m2 >= 20 (a missing value fails this test).
     """
-    cutoff = pd.Timestamp(cutoff)
-    # (a) first PV date of each building, missing if the building has no PV
-    first = lookup_first_pv(buildings["egid"], first_pv)
-    has_pv = first <= cutoff
-    # (b) new builds: known year from 2020, or period "after 2015" without a year
-    new_year = buildings["gbauj"] >= NEW_BUILD_FROM_YEAR
-    new_period = (buildings["gbaup"] == NEW_BUILD_PERIOD_CODE) & buildings["gbauj"].isna()
-    new_build = new_year | new_period
-    # (c) enough suitable roof; NaN >= 20 is False, so no roof record is dropped
-    enough_roof = buildings["suitable_area_m2"] >= MIN_SUITABLE_ROOF_M2
-    keep = ~has_pv & ~new_build & enough_roof
-    return buildings[keep].copy()
+    status = pool_status(buildings, first_pv, cutoff)
+    return buildings[status == "pool"].copy()
 
 
 def make_label(egids, first_pv, start, end):

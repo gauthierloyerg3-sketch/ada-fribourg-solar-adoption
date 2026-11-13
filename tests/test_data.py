@@ -110,3 +110,17 @@ def test_neighbour_features_match_brute_force():
             assert row.nbr_n_250 == near.sum()
             expected = has_pv[near].mean() if near.any() else 0.0
             assert abs(row.nbr_pv_share_250 - expected) < 1e-12
+
+
+def test_tariff_columns_are_complete_and_consistent():
+    table = load("model_table.parquet")
+    assert table[["tariff_total", "tariff_dev"]].notna().all().all()
+    # Filled municipalities sit at the canton median by construction
+    assert (table.loc[table["tariff_filled"] == 1, "tariff_dev"] == 0).all()
+    # One tariff per municipality and cut-off
+    assert (table.groupby(["cutoff", "ggdenr"])["tariff_total"].nunique() == 1).all()
+
+
+def test_id_columns_have_no_missing_values():
+    table = load("model_table.parquet")
+    assert table[["ggdenr", "gkode", "gkodn"]].notna().all().all()
