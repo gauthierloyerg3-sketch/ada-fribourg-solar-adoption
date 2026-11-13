@@ -4,6 +4,7 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Neighbours are all other population buildings within the radius (distance <= radius, identical coordinates count); `has_pv` is first PV <= T, the same rule as the pool, shared through `helpers.has_pv_by`. A building with no neighbour gets share 0 and `nbr_n_R` = 0. | Matches T04; the count is kept so a share of 0 from no neighbours can be told from a share of 0 among neighbours. |
 | 2026-11-13 | Verified: next-year tariffs are in the ElCom cube before the year starts (2027 is present on 2026-11-13), so the T+1 price is known at T. The model feature will be the deviation from the canton median of the year, not the level. | The level moves from a median of 21.2 Rp/kWh (2022) to 32.4 (2024); a model fitted on the 2022 level would extrapolate on the test. |
 | 2026-11-13 | Tariffs are fetched for all Swiss municipalities (H4, standard, 2020 to 2025) and filtered afterwards to the `ggdenr` of buildings_fr; municipalities with two operators get the mean of each price and `n_operators`. | Simpler and more reliable than a canton filter in SPARQL; matches the task. Unit (Rp/kWh) is inferred, not stated in the answer. |
 | 2026-11-13 | Stage 01 takes source names (`plants`, `buildings`, `roofs`, `plants_2026_09`); default runs all four. A partial run updates only its own entries in `sources.json`. | Registers change daily; a single-source run must not move the other extracts. |

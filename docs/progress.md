@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T04)
+- Done: `helpers.neighbour_pv_share` (cKDTree, count and share, self excluded) and `helpers.has_pv_by` (shared `<= T` rule); `nbr_n_100`, `nbr_pv_share_100`, `nbr_n_250`, `nbr_pv_share_250` in `model_table.parquet` (population buildings as neighbours, PV dated <= T); unit tests and a brute-force data test on 100 sampled pool buildings per cut-off.
+- Found: pool sizes and all earlier columns unchanged; metrics.csv identical; stage 03 runs in about 3 s. Mean share at 250 m 0.111 (train) and 0.186 (test); 1% of pool buildings have no neighbour within 250 m, 4.4 to 4.5% within 100 m. Adoption rises from 4.6% (lowest share quintile) to 11.7% (highest) in train.
+- Next: T05 (final building table).
+
 ## 2026-11-13 (T02)
 - Done: `01_get_data.py tariffs` (SPARQL POST to LINDAS, H4 standard, 2020-2025, raw CSV in data/raw); `tariffs_fr.parquet` (697 rows, one per `bfs_nr` x `year`, mean over operators, `n_operators`); `sources.json` tariff entry (query hash); 3 tests in test_data.py.
 - Found: 2024 has 119 rows, 117 municipalities, 4 operators, 7 distinct totals, median 32.402 Rp/kWh (as expected). GWR numbers 2056 and 2239 have no tariff row in 2024; 2022 also lacks 2138 (Jaun). 1,141 population buildings (2024) and 1,464 (2022) have no tariff. The cube holds 2027 tariffs today, so the year T+1 tariff is known at the end of year T.

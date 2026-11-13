@@ -1,6 +1,14 @@
+import numpy as np
 import pandas as pd
 import pytest
-from helpers import build_pool, capture_at_k, first_pv_date, make_label
+from helpers import (
+    build_pool,
+    capture_at_k,
+    first_pv_date,
+    has_pv_by,
+    make_label,
+    neighbour_pv_share,
+)
 
 
 def test_capture_perfect_ranking_at_base_rate():
@@ -125,3 +133,64 @@ def test_make_label_start_exclusive_end_inclusive():
     label = make_label([1, 2, 3, 4, 5], first, "2021-12-31", "2023-12-31")
     assert list(label) == [0, 1, 1, 0, 0]
     assert label.dtype.kind == "i"
+
+
+# Neighbour share: points on a line (metres), point 0 is the one under test
+LINE = np.array([[0.0, 0.0], [60.0, 0.0], [100.0, 0.0], [100.1, 0.0], [500.0, 0.0]])
+
+
+def test_neighbours_exclude_self_and_include_radius_boundary():
+    count, share = neighbour_pv_share(LINE, np.array([True, True, True, True, False]), 100)
+    # point 0: points 1 and 2 (exactly 100 m) are neighbours, point 3 (100.1 m) is not
+    assert count[0] == 2
+    assert share[0] == 1.0
+    # the isolated point has no neighbour
+    assert count[4] == 0
+
+
+def test_share_is_zero_without_neighbours():
+    count, share = neighbour_pv_share(LINE, np.ones(5, dtype=bool), 0.05)
+    assert (count == 0).all()
+    assert (share == 0.0).all()
+
+
+def test_own_pv_does_not_count():
+    # two points, only the first has PV: the first sees no PV, the second sees one of one
+    xy = np.array([[0.0, 0.0], [10.0, 0.0]])
+    count, share = neighbour_pv_share(xy, np.array([True, False]), 50)
+    assert count.tolist() == [1, 1]
+    assert share.tolist() == [0.0, 1.0]
+
+
+def test_share_is_a_fraction_of_neighbours():
+    # point 0 has three neighbours within 100 m (30, 40 and 100 m), one with PV
+    xy = np.array([[0.0, 0.0], [30.0, 0.0], [0.0, 40.0], [60.0, 80.0]])
+    count, share = neighbour_pv_share(xy, np.array([False, True, False, False]), 100)
+    assert count[0] == 3
+    assert share[0] == pytest.approx(1 / 3)
+
+
+def test_identical_coordinates_are_neighbours():
+    xy = np.array([[5.0, 5.0], [5.0, 5.0], [900.0, 900.0]])
+    count, share = neighbour_pv_share(xy, np.array([False, True, False]), 1)
+    assert count.tolist() == [1, 1, 0]
+    assert share.tolist() == [1.0, 0.0, 0.0]
+
+
+def test_neighbour_pv_dated_at_cutoff_counts_and_after_does_not():
+    cutoff = "2021-12-31"
+    pv = pd.DataFrame(
+        {
+            "egid": [2, 3],
+            "start_date": pd.to_datetime(["2021-12-31", "2022-01-01"]),
+        }
+    )
+    first = first_pv_date(pv)
+    egids = pd.Series([1, 2, 3])
+    has_pv = has_pv_by(egids, first, cutoff)
+    assert has_pv.tolist() == [False, True, False]
+    xy = np.array([[0.0, 0.0], [10.0, 0.0], [0.0, 10.0]])
+    count, share = neighbour_pv_share(xy, has_pv, 50)
+    # building 1 sees building 2 (dated T, counted) and building 3 (T + 1 day, not counted)
+    assert count[0] == 2
+    assert share[0] == 0.5

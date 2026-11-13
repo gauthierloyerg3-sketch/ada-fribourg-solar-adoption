@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.spatial import cKDTree
 
 # Folders, relative to the repository root, so that code works from any working directory
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,3 +116,38 @@ def make_label(egids, first_pv, start, end):
     first = lookup_first_pv(egids, first_pv)
     adopted = (first > pd.Timestamp(start)) & (first <= pd.Timestamp(end))
     return adopted.astype(int)
+
+
+def has_pv_by(egids, first_pv, cutoff):
+    """True where the building's first PV start date is <= cutoff (boolean array).
+
+    The same rule as in `build_pool`: a PV dated exactly on the cut-off counts,
+    one dated after it does not. Buildings without PV give False.
+    """
+    first = lookup_first_pv(egids, first_pv)
+    return (first <= pd.Timestamp(cutoff)).to_numpy()
+
+
+def neighbour_pv_share(xy, has_pv, radius):
+    """Number of neighbours and share of them with PV, per point.
+
+    `xy` is an (n, 2) array of coordinates in metres, `has_pv` a boolean array
+    of length n, `radius` in metres. The neighbours of a point are all OTHER
+    points at distance <= radius (the point itself is excluded; a different
+    point at identical coordinates is a neighbour). Returns `(count, share)`:
+    `count` is an integer array, `share` a float array with the fraction of the
+    neighbours whose `has_pv` is True, and 0.0 when there is no neighbour.
+    """
+    xy = np.asarray(xy, dtype=float)
+    has_pv = np.asarray(has_pv, dtype=bool)
+    if xy.ndim != 2 or xy.shape[1] != 2 or len(has_pv) != len(xy):
+        raise ValueError("xy must be (n, 2) and has_pv of length n")
+    # Neighbours within the radius, counted on all points and on PV points only;
+    # both counts include the point itself when it is in the tree
+    n_all = cKDTree(xy).query_ball_point(xy, radius, return_length=True)
+    n_pv = cKDTree(xy[has_pv]).query_ball_point(xy, radius, return_length=True)
+    # Remove the point itself (always in the first tree, in the second only if it has PV)
+    count = np.asarray(n_all, dtype=np.int64) - 1
+    n_pv = np.asarray(n_pv, dtype=np.int64) - has_pv
+    share = np.divide(n_pv, count, out=np.zeros(len(xy)), where=count > 0)
+    return count, share

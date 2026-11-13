@@ -1,5 +1,6 @@
 # Later stages add their packages in the PR that first uses them.
 numpy>=1.26
+scipy>=1.11
 pandas>=2.2
 pyarrow>=15.0
 scikit-learn>=1.4
