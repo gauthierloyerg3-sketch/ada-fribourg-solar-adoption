@@ -2,9 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 from helpers import (
+    apply_features,
     build_pool,
     capture_at_k,
     first_pv_date,
+    fit_features,
+    grouped_cv,
     has_pv_by,
     make_label,
     neighbour_pv_share,
@@ -210,3 +213,93 @@ def test_neighbour_pv_dated_at_cutoff_counts_and_after_does_not():
     # building 1 sees building 2 (dated T, counted) and building 3 (T + 1 day, not counted)
     assert count[0] == 2
     assert share[0] == 0.5
+
+
+def make_model_table(n=1200, seed=0):
+    """Small synthetic model table with the columns the feature builder reads."""
+    rng = np.random.default_rng(seed)
+    df = pd.DataFrame(
+        {
+            "egid": np.arange(n),
+            "yield_kwh": rng.uniform(1000, 50000, n),
+            "suitable_area_m2": rng.uniform(20, 300, n),
+            "roof_area_m2": rng.uniform(300, 400, n),
+            "best_class": rng.choice([3.0, 4.0, 5.0], n),
+            "gkat": rng.choice([1020, 1030, 1040], n),
+            "gklas": rng.choice([1110.0, 1121.0, 1130.0], n, p=[0.6, 0.38, 0.02]),
+            "gbaup": rng.choice([8011.0, 8012.0], n),
+            "garea": rng.uniform(40, 200, n),
+            "gastw": rng.integers(1, 5, n).astype(float),
+            "ganzwhg": rng.integers(1, 8, n).astype(float),
+            "nbr_n_100": rng.integers(0, 30, n),
+            "nbr_pv_share_100": rng.uniform(0, 1, n),
+            "nbr_n_250": rng.integers(0, 100, n),
+            "nbr_pv_share_250": rng.uniform(0, 1, n),
+            "tariff_dev": rng.choice([0.0, 0.5, -0.5], n),
+        }
+    )
+    df.loc[:9, "gastw"] = np.nan
+    df.loc[10:19, "garea"] = np.nan
+    df.loc[20:29, "ganzwhg"] = np.nan
+    df.loc[30:39, "gklas"] = np.nan
+    return df
+
+
+def test_features_standardised_on_train_and_complete():
+    train = make_model_table()
+    params = fit_features(train)
+    x = apply_features(train, params)
+    assert not x.isna().any().any()
+    assert np.allclose(x.mean(), 0, atol=1e-9)
+    assert np.allclose(x.std(ddof=0), 1)
+    assert {"gklas_other", "gklas_missing", "dwellings_missing", "floors_missing"} <= set(x.columns)
+    assert "dwellings_4plus" in x.columns and "yield_d1" in x.columns
+
+
+def test_features_use_train_parameters_only():
+    train = make_model_table()
+    test = make_model_table(seed=1)
+    test["yield_kwh"] = 1e6  # far above the train range
+    params = fit_features(train)
+    x = apply_features(test, params)
+    # Values above the train range land in the top decile bin
+    assert (x["yield_d10"] > 0).all()
+    assert x["yield_d1"].min() == x["yield_d1"].max()
+
+
+def test_features_drop_constant_column_and_group_rare_levels():
+    train = make_model_table()
+    train["tariff_dev"] = 0.0
+    params = fit_features(train)
+    x = apply_features(train, params)
+    assert "tariff_dev" not in x.columns
+    # gklas 1130 is rare (under 500 rows), so it has no level of its own
+    assert "gklas_1130" not in x.columns
+
+
+def test_features_have_no_forbidden_or_heating_columns():
+    train = make_model_table()
+    x = apply_features(train, fit_features(train))
+    forbidden = {"egid", "cutoff", "split", "y", "y_2024", "ggdenr", "gkode", "gkodn"}
+    forbidden |= {"tariff_total", "tariff_filled"}
+    assert not forbidden & set(x.columns)
+    assert not any(c.startswith(("genh", "gwaer", "heat")) for c in x.columns)
+    with pytest.raises(ValueError):
+        fit_features(train.assign(genh1=7400))
+    params = fit_features(train)
+    with pytest.raises(ValueError):
+        apply_features(train.assign(gwaerzh1=7500), params)
+
+
+def test_grouped_cv_never_splits_a_group():
+    groups = np.repeat(np.arange(23), np.arange(1, 24))  # 23 groups of unequal size
+    folds = grouped_cv(groups, n_splits=5)
+    assert len(folds) == 5
+    seen = []
+    for fit, val in folds:
+        assert not set(groups[fit]) & set(groups[val])
+        assert len(set(fit) | set(val)) == len(groups)
+        seen.append(set(groups[val]))
+    # Each group is in the validation part of exactly one fold
+    assert sum(len(s) for s in seen) == 23
+    assert set.union(*seen) == set(groups)
