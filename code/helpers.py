@@ -293,3 +293,27 @@ def grouped_cv(groups, n_splits=5):
     groups = np.asarray(groups)
     folds = GroupKFold(n_splits=n_splits).split(np.zeros(len(groups)), groups=groups)
     return list(folds)
+
+
+def cluster_bootstrap_indices(groups, n_boot, seed):
+    """Row indices of cluster-bootstrap replicates (whole groups drawn with replacement).
+
+    `groups` is an array-like with one group id per row (for example the
+    municipality). Each replicate draws as many groups as there are distinct
+    groups, with replacement; a group drawn k times contributes all its rows
+    k times. Returns a list of `n_boot` integer arrays of positional row
+    indices. Within a replicate the indices are in ascending row order, so the
+    copies of a row sit next to each other and a stable sort by score breaks
+    ties the same way as in the original data. Deterministic for a given seed
+    (`numpy.random.default_rng`); the same call gives the same draws for any
+    model scored on the same rows.
+    """
+    codes = pd.factorize(np.asarray(groups))[0]
+    n_groups = codes.max() + 1
+    rng = np.random.default_rng(seed)
+    replicates = []
+    for _ in range(n_boot):
+        drawn = rng.integers(0, n_groups, size=n_groups)
+        times_drawn = np.bincount(drawn, minlength=n_groups)
+        replicates.append(np.repeat(np.arange(len(codes)), times_drawn[codes]))
+    return replicates

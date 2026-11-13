@@ -5,6 +5,7 @@ from helpers import (
     apply_features,
     build_pool,
     capture_at_k,
+    cluster_bootstrap_indices,
     first_pv_date,
     fit_features,
     grouped_cv,
@@ -303,3 +304,29 @@ def test_grouped_cv_never_splits_a_group():
     # Each group is in the validation part of exactly one fold
     assert sum(len(s) for s in seen) == 23
     assert set.union(*seen) == set(groups)
+
+
+def test_cluster_bootstrap_is_reproducible_and_seed_dependent():
+    groups = np.repeat(np.arange(30), 3)
+    a = cluster_bootstrap_indices(groups, 5, seed=0)
+    b = cluster_bootstrap_indices(groups, 5, seed=0)
+    c = cluster_bootstrap_indices(groups, 5, seed=1)
+    assert all(np.array_equal(x, y) for x, y in zip(a, b, strict=True))
+    assert any(not np.array_equal(x, y) for x, y in zip(a, c, strict=True))
+    assert len(a) == 5
+
+
+def test_cluster_bootstrap_draws_whole_groups_k_times():
+    groups = np.repeat(np.arange(20), np.arange(1, 21))  # groups of unequal size
+    sizes = np.bincount(groups)
+    for idx in cluster_bootstrap_indices(groups, 10, seed=3):
+        counts = np.bincount(groups[idx], minlength=20)
+        times_drawn = counts / sizes
+        # Each group appears an integer number of times its size, in total 20 draws
+        assert np.array_equal(times_drawn, times_drawn.astype(int))
+        assert times_drawn.sum() == 20
+        # Each row of a group is repeated exactly as often as the group was drawn
+        rows = np.bincount(idx, minlength=len(groups))
+        assert np.array_equal(rows, times_drawn.astype(int)[groups])
+        # Ascending order: copies of a row are adjacent
+        assert np.all(np.diff(idx) >= 0)
