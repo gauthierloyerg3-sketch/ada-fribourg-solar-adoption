@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T08)
+- Done: `helpers.cluster_bootstrap_indices` (whole municipalities drawn with replacement, `default_rng`) with tests; 05 adds `<metric>_lo` / `<metric>_hi` (2.5th and 97.5th percentiles, B = 200, seed 0, same draws for all models) on test rows, and `figures/table_model_gaps.tex` with paired gaps (capture_10, ROC AUC) for lasso vs nbr_share, lasso vs roof_yield, nbr_share vs roof_yield. Old metrics.csv columns are byte-identical.
+- Found: 119 municipalities in the test pool; replicate size 41,252 to 65,929 rows. Test y, lasso capture_10 0.195 [0.179, 0.214] and ROC AUC 0.664 [0.648, 0.678]. Paired gap lasso minus nbr_share: capture_10 0.064 [0.048, 0.079], ROC AUC 0.066 [0.054, 0.079], so the LASSO beats both baselines by more than the sampling noise on the test pool. Municipality clustering widens the lasso capture_10 interval to 0.035 against 0.020 for a plain building bootstrap. 05 takes about 40 s; two runs give identical files.
+- Next: T09 (heating sensitivity run).
+
 ## 2026-11-13 (T07)
 - Done: `helpers.fit_features`, `apply_features` (51 standardised columns, heating columns raise) and `grouped_cv` (GroupKFold on `ggdenr`) with tests; `lasso` model in 04 (L1 logistic, `balanced`, grouped 5-fold CV over 10 C on a log grid, refit on train); `figures/table_lasso_coef.tex`; `lasso` rows in `metrics.csv`; capture curve with three models.
 - Found: chosen C = 0.1 (top of the grid, on a plateau: mean CV AUC 0.6777, SE 0.0024), 44 of 51 coefficients non-zero; one-SE C = 0.0046 gives 31. Test y: capture_10 0.195 (nbr_share 0.131, random 0.10), ROC AUC 0.664, AP 0.129; test y_2024: capture_10 0.210, AUC 0.675; train (in-sample) AUC 0.682. 04 takes about 100 s (CV fit about 100 s), 02 to 05 about 115 s; two runs give identical files. Scores are not calibrated (mean 0.48 on test against 0.078 observed).

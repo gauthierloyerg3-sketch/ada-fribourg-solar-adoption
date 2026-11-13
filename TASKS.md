@@ -22,7 +22,7 @@ Rules for every task (not repeated below):
 | T05 | Final building table: tariff join, ids, pool-filter table | done | T02, T04 | sonnet, medium | 22 Nov | no |
 | T06 | Baseline 2: rank by neighbour PV share | done | T05 | sonnet, medium | 29 Nov | no |
 | T07 | LASSO logistic with grouped CV | done | T06 | sonnet, medium | 29 Nov | no |
-| T08 | Bootstrap intervals in metrics.csv | todo | T07 | sonnet, medium | 29 Nov | no |
+| T08 | Bootstrap intervals in metrics.csv | done | T07 | sonnet, medium | 29 Nov | no |
 | T09 | Heating sensitivity run | todo | T08 | sonnet, medium | 6 Dec | no |
 | T10 | Small MLP | todo | T08 | sonnet, medium | 6 Dec | yes (first) |
 | T11 | GP on LASSO residuals per grid cell | todo | T07 | sonnet, medium | 6 Dec | no |
