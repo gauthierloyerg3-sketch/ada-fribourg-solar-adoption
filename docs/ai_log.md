@@ -11,3 +11,4 @@ Feeds the declaration of tools in the paper appendix.
 | 2026-11-13 | Task plan (TASKS.md) | TASKS.md |
 | 2026-11-13 | T01: bring SPEC.md up to date; record the no-gate rule and three approved choices | SPEC.md, TASKS.md, CLAUDE.md, docs/decisions.md, docs/progress.md, docs/ai_log.md |
 | 2026-11-13 | T03: add source selection to 01, older plant snapshot extract, register-lag table | code/01_get_data.py, data/processed/pv_fr_2026_09.parquet, data/processed/sources.json, code/03_features.ipynb, figures/table_register_lag.tex, tests/test_data.py, TASKS.md, docs/progress.md, docs/ai_log.md, docs/decisions.md |
+| 2026-11-13 | T02: tariff extract from LINDAS (source `tariffs` in 01, parquet, tests) | code/01_get_data.py, data/processed/tariffs_fr.parquet, data/processed/sources.json, tests/test_data.py, TASKS.md, docs/ |
