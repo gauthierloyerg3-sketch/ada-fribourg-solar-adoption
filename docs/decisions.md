@@ -4,6 +4,7 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | AI sessions merge their own PRs into main once CI is green (code PRs also need reviewer PASS). Phase gates and scope or method choices still wait for Gauthier. | Gauthier's instruction after PR 1: removes a manual step. He reviews after the fact. |
 | 2026-11-13 | Baseline 1 stays as declared (rank by total roof yield on class 3+ surfaces), although it scores below random. No search for a better-looking variant. | It was fixed before seeing results. The inverted-U shape (adoption about 5% in the lowest and the two highest yield deciles, about 9% in between) is a result to report, and it means the LASSO needs a non-linear yield term. |
 | 2026-11-13 | Notebooks are committed with outputs cleared during development; one executed version is committed before submission. | Clean diffs while developing; CI proves they run top to bottom, and the executed copy shows the results to the marker. |
 | 2026-11-13 | `pv_fr.parquet` carries no address, postcode or coordinates. | They are not needed: plants are linked to buildings by EGID. |
