@@ -6,6 +6,13 @@
     "size_bytes": 19480133,
     "url": "https://data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/csv/2056/ch.bfe.elektrizitaetsproduktionsanlagen.zip"
   },
+  "elektrizitaetsproduktionsanlagen_2026_09.csv.zip": {
+    "downloaded_utc": "2026-11-13T19:49:02+00:00",
+    "last_modified": "Wed, 16 Sep 2026 21:49:19 GMT",
+    "sha256": "8f207b57a5df548a78c587ba1e6a732549b1b16525d9b07db2f2a1d63c1cb2c6",
+    "size_bytes": 19195387,
+    "url": "https://data.geo.admin.ch/ch.bfe.elektrizitaetsproduktionsanlagen/elektrizitaetsproduktionsanlagen/elektrizitaetsproduktionsanlagen_2056.csv.zip"
+  },
   "fr.zip": {
     "downloaded_utc": "2026-11-13T16:25:53+00:00",
     "last_modified": "Fri, 13 Nov 2026 05:02:56 GMT",

@@ -59,3 +59,15 @@ def test_predictions_cover_model_table_once_per_model():
         assert not part.duplicated(keys).any()
         merged = table[keys].merge(part[keys], on=keys, how="outer", indicator=True)
         assert (merged["_merge"] == "both").all()
+
+
+def test_september_snapshot_has_same_schema_as_current_plants():
+    current = load("pv_fr.parquet")
+    snapshot = load("pv_fr_2026_09.parquet")
+    assert list(snapshot.columns) == list(current.columns)
+    assert snapshot.dtypes.astype(str).to_dict() == current.dtypes.astype(str).to_dict()
+
+
+def test_september_snapshot_plant_key_is_unique():
+    snapshot = load("pv_fr_2026_09.parquet")
+    assert snapshot["xtf_id"].is_unique
