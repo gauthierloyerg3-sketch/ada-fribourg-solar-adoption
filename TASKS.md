@@ -20,7 +20,7 @@ Rules for every task (not repeated below):
 | T02 | Tariff extract from LINDAS | done | T03 (same file) | sonnet, medium | 22 Nov | no |
 | T04 | Neighbour PV share helper and feature | done | none | sonnet, medium | 22 Nov | no |
 | T05 | Final building table: tariff join, ids, pool-filter table | done | T02, T04 | sonnet, medium | 22 Nov | no |
-| T06 | Baseline 2: rank by neighbour PV share | todo | T05 | sonnet, medium | 29 Nov | no |
+| T06 | Baseline 2: rank by neighbour PV share | done | T05 | sonnet, medium | 29 Nov | no |
 | T07 | LASSO logistic with grouped CV | todo | T06 | sonnet, medium | 29 Nov | no |
 | T08 | Bootstrap intervals in metrics.csv | todo | T07 | sonnet, medium | 29 Nov | no |
 | T09 | Heating sensitivity run | todo | T08 | sonnet, medium | 6 Dec | no |

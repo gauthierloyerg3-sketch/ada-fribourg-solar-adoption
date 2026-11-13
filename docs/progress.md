@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T06)
+- Done: `nbr_share` model (score = `nbr_pv_share_250`) in 04, which now builds one frame per model and writes one sorted `predictions.parquet` (scores float64, 6 decimals); 05 sorts by (split, model, egid) before scoring so ties are broken deterministically.
+- Found: test y capture_10 0.131 (random 0.10, roof_yield 0.073), ROC AUC 0.598, AP 0.099; test y_2024 capture_10 0.133, AUC 0.607; train AUC 0.591. Rounding to 6 decimals left the `roof_yield` rows unchanged. 3,621 distinct scores on test (8% of buildings at 0), but reversing the tie order leaves capture_10 unchanged (0.130846 / 0.133058).
+- Next: T07 (LASSO).
+
 ## 2026-11-13 (T05)
 - Done: `tariff_total`, `tariff_filled`, `tariff_dev` (year T+1 H4 price minus canton median of that year) and id columns `ggdenr`, `gkode`, `gkodn` in `model_table.parquet`; `helpers.pool_status` (reason per building, `build_pool` now uses it); `figures/table_pool_filters.tex`; tests.
 - Found: pool sizes 56,572 / 51,725, earlier columns and metrics.csv unchanged; filter table matches the baseline-1 numbers (new builds adopt 21.7% train and 27.9% test, no roof 5.0% / 5.4%, small roof 4.4% / 3.7%). 3 municipalities filled in train (1,136 pool buildings), 2 in test (784); 88% of pool buildings sit at the canton median (tariff_dev 0), so the tariff effect rests on about 12% of buildings in 6 to 7 price groups.

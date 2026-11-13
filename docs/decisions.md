@@ -4,6 +4,7 @@ Newest entries go on top.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Ties in a score are broken by ascending `egid` (05 sorts each split by model, egid before scoring); predictions are stored as float64 rounded to 6 decimals and sorted by (cutoff, model, egid). | `capture_at_k` breaks ties by row order, and `nbr_pv_share_250` has many ties; a fixed order makes metrics.csv reproducible. Reversing the order does not move capture_10 of `nbr_share`. |
 | 2026-11-13 | Pool-filter table assigns each at-risk building to one reason in the order new build, no roof record, small roof, through `helpers.pool_status`; `build_pool` keeps the buildings with status "pool". | The table and the pool share one rule, so they cannot drift apart. |
 | 2026-11-13 | The canton median of a year is the median of `total` over the municipality rows of `tariffs_fr` for that year; `tariff_dev` is rounded to 3 decimals. Municipalities without a tariff row get that median (`tariff_filled` = 1, `tariff_dev` = 0). | One definition used for both fill and deviation; the 3-decimal rounding removes float noise from the subtraction. |
 | 2026-11-13 | Neighbours are all other population buildings within the radius (distance <= radius, identical coordinates count); `has_pv` is first PV <= T, the same rule as the pool, shared through `helpers.has_pv_by`. A building with no neighbour gets share 0 and `nbr_n_R` = 0. | Matches T04; the count is kept so a share of 0 from no neighbours can be told from a share of 0 among neighbours. |
