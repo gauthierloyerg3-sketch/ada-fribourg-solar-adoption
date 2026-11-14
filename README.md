@@ -33,6 +33,9 @@ Outputs:
 The executed copies of the notebooks go to `/tmp/nb`, so the committed notebooks stay untouched.
 Checks: `pytest` and `ruff check .`.
 
+## Paper
+The LaTeX skeleton is in `paper/` (build with `latexmk -pdf main.tex` from that folder; see `paper/README.md`). It pulls every figure and table from `figures/`; the text is written by the author.
+
 ## Data sources
 All four are Swiss federal open data. Licences and citations will be completed before submission.
 1. SFOE register of electricity production plants: photovoltaic plants, with the building identifier (EGID).

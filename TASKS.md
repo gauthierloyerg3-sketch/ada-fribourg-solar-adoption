@@ -28,7 +28,7 @@ Rules for every task (not repeated below):
 | T11 | GP on LASSO residuals per grid cell | done | T07 | sonnet, medium | 6 Dec | no |
 | T12 | PCA and k-means segments | done | T07 | sonnet, medium | 13 Dec | yes (second) |
 | T13 | Paper figures and tables | done | T08 to T12 | sonnet, medium | 13 Dec | no |
-| T14 | Wire figures into paper/ and check them in CI | todo | T13, owner adds SIAM template | sonnet, medium | 13 Dec | no |
+| T14 | Wire figures into paper/ and check them in CI | done | T13, owner adds SIAM template | sonnet, medium | 13 Dec | no |
 | T15 | Reproducibility: pin, Python version, README | todo | T14, owner checks Nuvolos | sonnet, medium | week of 14 Dec | no |
 | T16 | Final freeze: executed notebooks, number check | todo | T15, owner's paper draft | haiku, low | 20 Dec | no |
 
@@ -120,7 +120,7 @@ Acceptance: notebooks executed top to bottom on fresh kernels; every number in p
 | Choose the bootstrap resampling unit (building or municipality) | T08 (29 Nov) |
 | Manual aerial-photo check of 50 "no PV" buildings | paper data section (13 Dec) |
 | Check the Python version and CPU of the Nuvolos workspace | T15 (14 Dec) |
-| Add the SIAM template to paper/ | T14 (13 Dec) |
+| Add the SIAM template to paper/ (`siamart220329.cls`, see paper/README.md; check its licence) | T14 (13 Dec) |
 | Write the paper | draft 13 Dec, final 20 Dec |
 | Reproduction test in Nuvolos (fresh clone, README) | week of 14 Dec |
 | Record the 15-minute video; submit repo URL and commit SHA | 20 Dec, 23:59 Zurich |

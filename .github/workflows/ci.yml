@@ -26,5 +26,16 @@ jobs:
       - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/03_features.ipynb
       - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/04_model.ipynb
       - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/05_figures.ipynb
-      # Fail if the regenerated metrics differ from the committed file
-      - run: git diff --exit-code figures/metrics.csv
+      # Fail if a regenerated output differs from the committed file: every table fragment and the
+      # three CSVs the paper relies on. PDFs and gp_summary.csv are left out: they can differ between machines.
+      - run: git diff --exit-code -- 'figures/*.tex' figures/metrics.csv figures/lasso_cv.csv figures/segments_summary.csv
+
+  # Compile paper/main.tex to check that the fragments parse. Uploads nothing.
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends latexmk texlive-latex-base texlive-latex-recommended
+      - run: latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+        working-directory: paper

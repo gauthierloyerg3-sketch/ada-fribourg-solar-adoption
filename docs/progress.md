@@ -1,6 +1,11 @@
 # Progress
 
 Newest on top.
+## 2026-11-14 (T14)
+- Done: `paper/main.tex` skeleton (course headings in order, 19 floats from `figures/`, placeholder captions, no prose), `paper/README.md`, `tests/test_paper.py` (paths exist, every listed output used, heading order, no-prose guard), CI diff on all `figures/*.tex` plus three CSVs, separate `paper` LaTeX job.
+- Found: SIAM site returns 403 from the session; class not included, `main.tex` falls back to `article`. LaTeX not compiled locally.
+- Next: owner drops `siamart220329.cls` into `paper/` and sets `ENFORCE_NO_PROSE = False` when writing; T15.
+
 ## 2026-11-14 (T13)
 - Done: every paper table and figure written by code. 05: `table_metrics.tex` and `table_metrics_rank.tex` (capture at 5%/10%; ROC AUC and average precision, `value [low, high]`), same for the 2024-only label (`_2024`), `table_adoption_by_type.tex`, `adoption_by_yield.pdf`, `adoption_by_neighbour_share.pdf`, `map_adoption.pdf` (801 cells of 1 km with at least 10 buildings, test), `lasso_cv.pdf`, restyled `capture_curve.pdf`. 04 (coefficient cell only): `lasso_cv.csv`, readable labels in `table_lasso_coef.tex` (25 largest of 44) and `table_lasso_coef_full.tex`. `helpers.MODEL_LABELS`, `feature_label`, `format_interval`, `latex_escape` with tests; `figures/README.md` index with a test that it matches the folder. No number moved: `metrics.csv`, predictions, GP and segment files identical; 04 about 3.5 min, 05 about 80 s; second run of 05 gives byte-identical files.
 - Found: yield inverted U on both pools (deciles 1 and 9-10 about 5-6%, 8.6-10% between). Adoption rises with the neighbour share quintile (test 3.8% to 11.1%). 4 or more dwellings: 2.9% train, 3.9% test; category 1030/1040 about 4%. Largest LASSO term: three or more dwellings (gklas 1122), -0.388.
