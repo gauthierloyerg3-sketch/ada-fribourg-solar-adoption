@@ -1,6 +1,11 @@
 # Progress
 
 Newest on top.
+## 2026-11-14 (T15, part)
+- Done: `requirements.txt` pinned with `==` (numpy 2.5.4, scipy 1.18.1, pandas 3.1.1, pyarrow 26.0.1, scikit-learn 1.9.1, matplotlib 3.11.2, nbconvert 7.17.2, ipykernel 7.4.0, pytest 9.2.0, ruff 0.17.5), test that every line is pinned; fresh venv (Python 3.13): install and `pytest` pass (65 tests); every pin has a Python 3.12 wheel. README rewritten (run order, runtime, machine, sources, reproducibility, AI use); `docs/data_sources.md` with URL, version, terms and citation per source.
+- Found: terms read at the source: plants and roofs "Opendata BY: Open use. Must provide the source." (geocat.ch); GWR `license.pdf` inside `fr.zip` (free use, commercial allowed, source required); ElCom cube licence `Open-Use` (LINDAS). opendata.swiss returned 403, so its terms page is not read. Transitive dependencies are not pinned. Stages not re-run.
+- Next: owner reports the Nuvolos Python and CPU; then CI version and pins are confirmed or changed; timed run; T15 stays `in progress` until then.
+
 ## 2026-11-14 (T14)
 - Done: `paper/main.tex` skeleton (course headings in order, 19 floats from `figures/`, placeholder captions, no prose), `paper/README.md`, `tests/test_paper.py` (paths exist, every listed output used, heading order, no-prose guard), CI diff on all `figures/*.tex` plus three CSVs, separate `paper` LaTeX job.
 - Found: SIAM site returns 403 from the session; class not included, `main.tex` falls back to `article`. LaTeX not compiled locally.

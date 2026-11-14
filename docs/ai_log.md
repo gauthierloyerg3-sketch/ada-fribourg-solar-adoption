@@ -4,6 +4,7 @@ Feeds the declaration of tools in the paper appendix.
 
 | Date | Asked | Files touched |
 |---|---|---|
+| 2026-11-14 | T15 (part): exact pins in requirements.txt with a test, fresh-environment check, README rewrite, licence lookup for the four data sources | requirements.txt, README.md, docs/data_sources.md, tests/test_data.py, TASKS.md, docs/progress.md, docs/ai_log.md, docs/decisions.md |
 | 2026-11-14 | T14: paper skeleton wiring every figure and table from figures/, paper README, tests for paths, coverage, heading order and a no-prose guard, CI diff extended and a LaTeX build job | paper/main.tex, paper/README.md, tests/test_paper.py, .github/workflows/ci.yml, .gitignore, README.md, TASKS.md, docs/ |
 | 2026-11-14 | T13: paper tables and figures (metrics tables with intervals, adoption by yield decile, neighbour quintile, category and dwellings, 1 km maps, LASSO CV curve, readable coefficient labels), figures index and its test | code/helpers.py, tests/test_helpers.py, tests/test_data.py, code/04_model.ipynb (coefficient cell only), code/05_figures.ipynb, figures/ (new files, capture_curve.pdf, table_lasso_coef.tex), figures/README.md, TASKS.md, docs/ |
 | 2026-11-14 | T12: PCA and k-means segments (train fit, test applied), silhouette choice of k, adoption per segment, hexbin plot, table | code/04_model.ipynb, code/05_figures.ipynb, tests/test_data.py, data/processed/segments.parquet, figures/segments_summary.csv, figures/table_segments.tex, figures/pca_segments.pdf, SPEC.md, TASKS.md, docs/ |

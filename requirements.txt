@@ -1,11 +1,18 @@
-# Later stages add their packages in the PR that first uses them.
-numpy>=1.26
-scipy>=1.11
-pandas>=2.2
-pyarrow>=15.0
-scikit-learn>=1.8
-matplotlib>=3.8
-nbconvert>=7.16
-ipykernel>=6.29
-pytest>=8.0
-ruff>=0.6
+# Exact pins of the direct dependencies. Every result in this repository was produced with
+# these versions: Python 3.13 in the development container, Python 3.12 in CI (the GitHub
+# job regenerates the tables and metrics and diffs them against the committed files).
+# pandas 3 and scikit-learn 1.8 or later need Python 3.11 or later.
+# If the Nuvolos workspace has an older Python, pip cannot install these pins there and
+# results would come from other library versions, so the committed metrics might not
+# reproduce to the last digit. The owner then gets a newer Python in the workspace, or the
+# pins are changed and the stages re-run on that version.
+numpy==2.5.4
+scipy==1.18.1
+pandas==3.1.1
+pyarrow==26.0.1
+scikit-learn==1.9.1
+matplotlib==3.11.2
+nbconvert==7.17.2
+ipykernel==7.4.0
+pytest==9.2.0
+ruff==0.17.5

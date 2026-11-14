@@ -29,7 +29,7 @@ Rules for every task (not repeated below):
 | T12 | PCA and k-means segments | done | T07 | sonnet, medium | 13 Dec | yes (second) |
 | T13 | Paper figures and tables | done | T08 to T12 | sonnet, medium | 13 Dec | no |
 | T14 | Wire figures into paper/ and check them in CI | done | T13, owner adds SIAM template | sonnet, medium | 13 Dec | no |
-| T15 | Reproducibility: pin, Python version, README | todo | T14, owner checks Nuvolos | sonnet, medium | week of 14 Dec | no |
+| T15 | Reproducibility: pin, Python version, README | in progress | T14, owner checks Nuvolos | sonnet, medium | week of 14 Dec | no |
 | T16 | Final freeze: executed notebooks, number check | todo | T15, owner's paper draft | haiku, low | 20 Dec | no |
 
 Tasks run in the row order of this table, not in id order. Why this order where it is not obvious: T03 runs before T02 because the September snapshot can be overwritten at the next register update. T09 comes before T10 because the heating run is never cut. T11 runs before T12 because the GP is not cuttable.
@@ -106,6 +106,7 @@ Acceptance: test that every path referenced in paper/*.tex exists in figures/; C
 Files: requirements.txt, code/01_get_data.py, .github/workflows/ci.yml, pyproject.toml, README.md.
 Facts: stage 01 uses `datetime.UTC` (3.11+): use `timezone.utc` if Nuvolos is older. Pin exact versions that work there; set CI to the Nuvolos Python version.
 Acceptance: CI green on pinned versions; README has run order, measured runtime and machine, data sources with licences; timed run of 02 to 05 under 15 minutes pasted in the PR.
+Status: pins, README and `docs/data_sources.md` done. Open: the owner reports the Python version and CPU of the Nuvolos workspace (CI is at 3.12; change it and the pins only if Nuvolos differs); a timed run of 02 to 05 (CI job time is the only total so far); the owner reads the licence texts marked "not verified" in `docs/data_sources.md`. The `datetime.UTC` line in stage 01 is unchanged (needs 3.11+).
 
 **T16 Final freeze.** Goal: the graded commit shows results and the numbers match.
 Files: code/02_clean.ipynb to code/05_figures.ipynb (executed in place, per decisions.md), README.md (recording link).
