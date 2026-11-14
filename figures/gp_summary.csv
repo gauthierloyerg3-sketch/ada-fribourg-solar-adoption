@@ -1,0 +1,3 @@
+split,cell_size_m,cells_kept,buildings_kept,buildings_dropped,mean_p_cal,observed_rate,mean_cell_residual,signal_sd,length_scale_km,white_sd,log_ml_gp,log_ml_null,log_ml_diff,neighbour_corr,neighbour_corr_p
+test,500,1234,44564,7161,0.094,0.078,-0.018,0.002,50.0,0.0,1841.786,1841.288,0.499,0.009,0.417
+train,500,1280,49355,7217,0.086,0.086,0.001,0.023,0.529,0.0,1869.466,1855.06,14.407,0.149,0.001

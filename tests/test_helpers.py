@@ -8,6 +8,7 @@ from helpers import (
     cluster_bootstrap_indices,
     first_pv_date,
     fit_features,
+    grid_cell,
     grouped_cv,
     has_pv_by,
     heat_source_group,
@@ -395,3 +396,17 @@ def test_heat_source_group_maps_codes():
         "missing",
     ]
     assert heat_source_group(codes).tolist() == expected
+
+
+def test_grid_cell_floors_to_the_cell_corner():
+    # Points inside one 500 m cell share a corner; the lower and left edges belong to the cell
+    cx, cy = grid_cell(
+        [2575000.0, 2575499.9, 2575500.0, 2574999.9],
+        [1180000.0, 1180499.9, 1180000.0, 1180250.0],
+        500,
+    )
+    assert list(cx) == [2575000.0, 2575000.0, 2575500.0, 2574500.0]
+    assert list(cy) == [1180000.0, 1180000.0, 1180000.0, 1180000.0]
+    # A 1,000 m grid merges neighbouring 500 m cells
+    cx, cy = grid_cell([2575000.0, 2575500.0], [1180000.0, 1180500.0], 1000)
+    assert list(cx) == [2575000.0, 2575000.0] and list(cy) == [1180000.0, 1180000.0]

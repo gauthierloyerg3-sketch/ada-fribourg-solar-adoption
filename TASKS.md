@@ -25,7 +25,7 @@ Rules for every task (not repeated below):
 | T08 | Bootstrap intervals in metrics.csv | done | T07 | sonnet, medium | 29 Nov | no |
 | T09 | Heating sensitivity run | done | T08 | sonnet, medium | 6 Dec | no |
 | T10 | Small MLP | done | T08 | sonnet, medium | 6 Dec | yes (first) |
-| T11 | GP on LASSO residuals per grid cell | todo | T07 | sonnet, medium | 6 Dec | no |
+| T11 | GP on LASSO residuals per grid cell | done | T07 | sonnet, medium | 6 Dec | no |
 | T12 | PCA and k-means segments | todo | T07 | sonnet, medium | 13 Dec | yes (second) |
 | T13 | Paper figures and tables | todo | T08 to T12 | sonnet, medium | 13 Dec | no |
 | T14 | Wire figures into paper/ and check them in CI | todo | T13, owner adds SIAM template | sonnet, medium | 13 Dec | no |

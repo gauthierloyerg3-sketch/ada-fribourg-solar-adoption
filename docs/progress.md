@@ -2,6 +2,11 @@
 
 Newest on top.
 
+## 2026-11-13 (T11)
+- Done: GP on LASSO residuals per 500 m cell. Platt scaling on train (slope 1.028, intercept -2.367; mean `p_cal` 0.086 train, 0.094 test against rates 0.086 and 0.078), cells with at least 10 buildings (1,234 test, 1,280 train; 7,161 and 7,217 buildings dropped), `ConstantKernel * RBF + WhiteKernel` with known per-cell sampling variance, null model, neighbour-correlation permutation check. `helpers.grid_cell` with test; `gp_cells.parquet`, `gp_summary.csv` (04), `gp_residual_map.pdf` (05). Existing scores, metrics and tables unchanged; GP fit about 25 s, 04 about 2.8 min.
+- Found: nothing detectable on the test split: log ML gain over the null 0.5, signal sd 0.002 with the length scale at the 50 km bound, white noise at its lower bound, neighbour correlation 0.009 (permutation p 0.42). In-sample (train) there is a small cell-level signal: gain 14.4 log units, signal sd 0.023, length scale 0.53 km (about one cell, so not a smooth surface), neighbour correlation 0.149 (p 0.001). Test mean residual -0.018 is the base-rate shift.
+- Next: T12 (PCA and k-means segments).
+
 ## 2026-11-13 (T10)
 - Done: `mlp` (16) and `mlp_wide` (32, 16) in 04 on the `lasso` feature matrix, unweighted, scores at 4 decimals; 05 adds both to `metrics.csv` and the gap table, `mlp` to the capture curve. Stopping rule: 60 epochs on 80% of the train municipalities, best validation ROC AUC epoch, refit on the whole train split (best epoch 18 and 9). The first version used scikit-learn's accuracy-based `early_stopping` (stopped after 12 iterations, under-fitted, in-sample AUC 0.609 and 0.654) and was replaced on train-side evidence. Existing rows, scores and tables unchanged.
 - Found: the networks match the LASSO within noise. Test y: capture_10 0.194 (`mlp`), 0.192 (`mlp_wide`) against 0.195 (`lasso`); ROC AUC 0.661, 0.661 against 0.664; gaps to `lasso` (ROC AUC) -0.003 [-0.009, 0.001] and -0.004 [-0.009, 0.001]. In-sample AUC 0.701 and 0.709 against 0.682, so they fit train slightly better without generalising better. Fits identical across processes.
