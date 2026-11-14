@@ -32,3 +32,4 @@ env/
 *.fls
 *.fdb_latexmk
 *.toc
+paper/main.pdf

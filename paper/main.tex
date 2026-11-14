@@ -1,0 +1,180 @@
+% Skeleton only: preamble, section headings, floats pulling from ../figures/.
+% The text is written by the author (see README.md in this folder). No AI-written prose here.
+% Build: latexmk -pdf main.tex   (from paper/)
+
+% Use the SIAM class when siamart220329.cls is in this folder, else the standard article class.
+\newif\ifsiam
+\IfFileExists{siamart220329.cls}{\siamtrue\documentclass{siamart220329}}{\documentclass[11pt]{article}}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+% Shrink a table to the text width only when it is wider; never enlarge a small one.
+\newcommand{\fitwidth}[1]{\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{#1}}
+
+% TODO(author): title and author
+\title{TODO(author): title}
+\author{TODO(author): name}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% TODO(author): write the abstract.
+\end{abstract}
+
+\section{Introduction}
+% TODO(author): write. Floats: none planned.
+
+\section{Research question and literature}
+% TODO(author): write. Floats: none planned.
+
+\section{Methodology}
+% TODO(author): write. Floats: none planned (metrics are defined here, results are in Results).
+
+\section{Data set (source and cleaning)}
+% TODO(author): write. Floats for this section:
+%   table_pool_filters, table_register_lag, table_adoption_by_type,
+%   adoption_by_yield, adoption_by_neighbour_share
+\begin{table}[t]
+\centering
+\caption{Buildings removed by each pool filter at both cut-offs. TODO caption (author).}\label{tab:pool_filters}
+\fitwidth{\input{../figures/table_pool_filters.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{First installations by start year in the September and November 2026 plant files. TODO caption (author).}\label{tab:register_lag}
+\fitwidth{\input{../figures/table_register_lag.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Buildings and adoption rate by building category and number of dwellings. TODO caption (author).}\label{tab:adoption_by_type}
+\fitwidth{\input{../figures/table_adoption_by_type.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/adoption_by_yield.pdf}
+\caption{Adoption rate by decile of yearly roof yield. TODO caption (author).}\label{fig:adoption_by_yield}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/adoption_by_neighbour_share.pdf}
+\caption{Adoption rate by quintile of the neighbour PV share at 250 m. TODO caption (author).}\label{fig:adoption_by_neighbour_share}
+\end{figure}
+
+\section{Implementation}
+% TODO(author): write. Floats: none planned.
+
+\section{Results}
+% TODO(author): write. Floats for this section:
+%   table_metrics, table_metrics_rank, capture_curve, table_model_gaps,
+%   table_lasso_coef, lasso_cv, map_adoption, gp_residual_map,
+%   table_segments, pca_segments, table_heating_leak
+\begin{table}[t]
+\centering
+\caption{Capture at 5\% and 10\% on the test pool. TODO caption (author).}\label{tab:metrics}
+\fitwidth{\input{../figures/table_metrics.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{ROC AUC and average precision on the test pool. TODO caption (author).}\label{tab:metrics_rank}
+\fitwidth{\input{../figures/table_metrics_rank.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/capture_curve.pdf}
+\caption{Capture curve on the test pool. TODO caption (author).}\label{fig:capture_curve}
+\end{figure}
+
+% Wide rows: scaled to the text width. Check legibility once the text is written.
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Paired gaps between models. TODO caption (author).}\label{tab:model_gaps}
+\fitwidth{\input{../figures/table_model_gaps.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{The 25 largest non-zero LASSO coefficients. TODO caption (author).}\label{tab:lasso_coef}
+\fitwidth{\input{../figures/table_lasso_coef.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/lasso_cv.pdf}
+\caption{Grouped cross-validation curve of the LASSO. TODO caption (author).}\label{fig:lasso_cv}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/map_adoption.pdf}
+\caption{Observed adoption rate and mean LASSO score percentile per 1 km cell, test pool. TODO caption (author).}\label{fig:map_adoption}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/gp_residual_map.pdf}
+\caption{Observed and GP-smoothed LASSO residual per 500 m cell, test pool. TODO caption (author).}\label{fig:gp_residual_map}
+\end{figure}
+
+% 11 columns: scaled to the text width.
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{K-means segments. TODO caption (author).}\label{tab:segments}
+\fitwidth{\input{../figures/table_segments.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/pca_segments.pdf}
+\caption{Test pool on the first two principal components with the segment centres. TODO caption (author).}\label{fig:pca_segments}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Adoption by date of the heating record. TODO caption (author).}\label{tab:heating_leak}
+\fitwidth{\input{../figures/table_heating_leak.tex}}
+\end{table}
+
+\section{Conclusion}
+% TODO(author): write. Floats: none planned.
+
+% TODO(author): references (bibliography) go here, after the conclusion and before the appendix.
+
+\appendix
+\section{Declaration of tools}
+% TODO(author): write the declaration from docs/ai_log.md (what was asked of AI sessions, files
+% touched) and docs/decisions.md (choices). Also list code from outside sources (CLAUDE.md, Course rules).
+% Floats for this section (supplementary tables):
+%   table_metrics_2024, table_metrics_2024_rank, table_lasso_coef_full
+\begin{table}[t]
+\centering
+\caption{Capture at 5\% and 10\%, first PV in 2024 only. TODO caption (author).}\label{tab:metrics_2024}
+\fitwidth{\input{../figures/table_metrics_2024.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{ROC AUC and average precision, first PV in 2024 only. TODO caption (author).}\label{tab:metrics_2024_rank}
+\fitwidth{\input{../figures/table_metrics_2024_rank.tex}}
+\end{table}
+
+% 44 rows: [p] puts it on its own page; footnotesize keeps it on one page.
+\begin{table}[p]
+\centering
+\footnotesize
+\caption{All non-zero LASSO coefficients. TODO caption (author).}\label{tab:lasso_coef_full}
+\fitwidth{\input{../figures/table_lasso_coef_full.tex}}
+\end{table}
+
+\end{document}
