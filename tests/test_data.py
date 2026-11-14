@@ -160,3 +160,15 @@ def test_gp_cells_are_complete_and_large_enough():
     assert (cells["n"] >= 10).all()
     assert not cells.isna().any().any()
     assert not cells.duplicated(["split", "cell_x", "cell_y"]).any()
+
+
+def test_segments_have_the_keys_of_model_table():
+    segments = load("segments.parquet")
+    table = load("model_table.parquet")
+    assert not segments.duplicated(["egid", "cutoff"]).any()
+    # Same (egid, cutoff) keys as the model table, every row in a segment
+    keys = ["egid", "cutoff"]
+    merged = table[keys].merge(segments[keys], on=keys, how="outer", indicator=True)
+    assert (merged["_merge"] == "both").all()
+    assert segments["segment"].notna().all()
+    assert segments[["pc1", "pc2"]].notna().all().all()
