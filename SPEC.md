@@ -60,6 +60,7 @@ Raw downloads go to `data/raw/` (git-ignored). Everything below is committed in 
 | `model_table.parquet` | pool building x cut-off: features, `y`, `y_2024` | `egid`, `cutoff` | 03 |
 | `heating_features.parquet` | pool building x cut-off: `heat_source`, `heat_updated_after`, `heat_date_missing` (sensitivity run only) | `egid`, `cutoff` | 03 |
 | `predictions.parquet` | pool building x model: score | `egid`, `cutoff`, `model` | 04 |
+| `gp_cells.parquet` | split x grid cell with at least 10 pool buildings: calibrated residual mean, GP posterior | `split`, `cell_x`, `cell_y` | 04 |
 
 ## Interfaces
 - Stages: `code/01_get_data.py` -> `02_clean.ipynb` -> `03_features.ipynb` -> `04_model.ipynb` -> `05_figures.ipynb`. Each reads only what the previous stage saved. Only 01 touches the network.

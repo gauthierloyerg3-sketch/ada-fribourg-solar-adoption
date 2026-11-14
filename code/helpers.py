@@ -386,3 +386,15 @@ def cluster_bootstrap_indices(groups, n_boot, seed):
         times_drawn = np.bincount(drawn, minlength=n_groups)
         replicates.append(np.repeat(np.arange(len(codes)), times_drawn[codes]))
     return replicates
+
+
+def grid_cell(x, y, size):
+    """Lower-left corner of the square grid cell holding each point.
+
+    `x`, `y` are coordinates (LV95 metres) and `size` the cell side in metres.
+    Returns two arrays: the corners are the coordinates floored to a multiple
+    of `size`. A point on a cell's lower or left edge belongs to that cell.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    return np.floor(x / size) * size, np.floor(y / size) * size

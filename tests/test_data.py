@@ -153,3 +153,10 @@ def test_tariff_columns_are_complete_and_consistent():
 def test_id_columns_have_no_missing_values():
     table = load("model_table.parquet")
     assert table[["ggdenr", "gkode", "gkodn"]].notna().all().all()
+
+
+def test_gp_cells_are_complete_and_large_enough():
+    cells = load("gp_cells.parquet")
+    assert (cells["n"] >= 10).all()
+    assert not cells.isna().any().any()
+    assert not cells.duplicated(["split", "cell_x", "cell_y"]).any()
