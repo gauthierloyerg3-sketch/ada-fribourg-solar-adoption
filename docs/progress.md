@@ -1,6 +1,11 @@
 # Progress
 
 Newest on top.
+## 2026-11-14 (T12)
+- Done: descriptive segments (10 standardised traits, PCA, k-means) fitted on train, applied to test; `segments.parquet`, `segments_summary.csv` (04), `table_segments.tex`, `pca_segments.pdf` (05); test `test_segments_have_the_keys_of_model_table`. No existing output changed; 04 about 3.5 min, 05 about 80 s; two runs of 04 give identical segment files.
+- Found: silhouette 0.173 / 0.200 / 0.194 / 0.174 (k = 3 to 6), k = 4 chosen, weak structure (under 0.25). Stability ARI 0.997. Test adoption: segment 2 (small suitable-roof houses, high suitable share) 10.0%, segment 4 (apartment blocks, 5.6 dwellings) 3.6%, segment 1 7.8%, segment 3 (large old buildings, many mixed categories) 5.8%. Segment 4 is nearly the 4+ dwellings bin (95%), so it largely relabels one variable.
+- Next: T13 (paper figures and tables).
+
 
 ## 2026-11-13 (T11)
 - Done: GP on LASSO residuals per 500 m cell. Platt scaling on train (slope 1.028, intercept -2.367; mean `p_cal` 0.086 train, 0.094 test against rates 0.086 and 0.078), cells with at least 10 buildings (1,234 test, 1,280 train; 7,161 and 7,217 buildings dropped), `ConstantKernel * RBF + WhiteKernel` with known per-cell sampling variance, null model, neighbour-correlation permutation check. `helpers.grid_cell` with test; `gp_cells.parquet`, `gp_summary.csv` (04), `gp_residual_map.pdf` (05). Existing scores, metrics and tables unchanged; GP fit about 25 s, 04 about 2.8 min.
