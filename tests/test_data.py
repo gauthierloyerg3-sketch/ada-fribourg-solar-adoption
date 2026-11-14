@@ -218,3 +218,13 @@ def test_lasso_tables_use_readable_labels_and_cv_file_matches_the_grid():
     cv = pd.read_csv(helpers.FIGURES / "lasso_cv.csv")
     assert list(cv.columns) == ["C", "mean_auc", "se_auc", "mean_nonzero"]
     assert len(cv) == 10 and cv["C"].is_monotonic_increasing
+
+
+def test_requirements_pin_every_package_with_an_exact_version():
+    lines = (helpers.ROOT / "requirements.txt").read_text().splitlines()
+    specs = [ln.strip() for ln in lines if ln.strip() and not ln.strip().startswith("#")]
+    assert specs
+    for spec in specs:
+        assert re.fullmatch(r"[A-Za-z0-9_.-]+==\d+(\.\d+)*", spec), spec
+    names = {spec.split("==")[0].lower() for spec in specs}
+    assert {"numpy", "pandas", "pyarrow", "scipy", "scikit-learn", "matplotlib"} <= names
