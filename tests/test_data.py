@@ -3,6 +3,8 @@
 Drafted with an AI assistant, see docs/ai_log.md.
 """
 
+import re
+
 import helpers
 import numpy as np
 import pandas as pd
@@ -172,3 +174,47 @@ def test_segments_have_the_keys_of_model_table():
     assert (merged["_merge"] == "both").all()
     assert segments["segment"].notna().all()
     assert segments[["pc1", "pc2"]].notna().all().all()
+
+
+FIGURES_README = helpers.FIGURES / "README.md"
+METRIC_TABLES = [
+    "table_metrics.tex",
+    "table_metrics_rank.tex",
+    "table_metrics_2024.tex",
+    "table_metrics_2024_rank.tex",
+]
+
+
+def test_figures_readme_lists_every_file_of_figures():
+    # Not skipped when a file is missing: the index and the folder must agree
+    listed = re.findall(r"^\| `([^`]+)`", FIGURES_README.read_text(), flags=re.MULTILINE)
+    assert len(listed) == len(set(listed)), "a file is listed twice"
+    on_disk = {p.name for p in helpers.FIGURES.iterdir() if p.is_file()} - {"README.md"}
+    assert set(listed) - on_disk == set(), "listed but missing"
+    assert on_disk - set(listed) == set(), "present but not listed"
+
+
+def test_metrics_tables_have_one_row_per_model():
+    for name in METRIC_TABLES:
+        text = (helpers.FIGURES / name).read_text()
+        for model, label in helpers.MODEL_LABELS.items():
+            rows = [line for line in text.splitlines() if line.startswith(f"{label} &")]
+            assert len(rows) == 1, f"{name}: {len(rows)} rows for {model}"
+        assert "Sensitivity runs with heating" in text
+
+
+def test_lasso_tables_use_readable_labels_and_cv_file_matches_the_grid():
+    table = load("model_table.parquet")
+    train = table[table["split"] == "train"].reset_index(drop=True)
+    params = helpers.fit_features(train)
+    # Every feature of the LASSO has a label of its own (no fall-back to the identifier)
+    unlabelled = [c for c in params["columns"] if helpers.feature_label(c) == c]
+    assert unlabelled == []
+    short = (helpers.FIGURES / "table_lasso_coef.tex").read_text()
+    full = (helpers.FIGURES / "table_lasso_coef_full.tex").read_text()
+    for text in (short, full):
+        assert not re.search(r"\b(gklas|gkat|gbaup)\\_\d", text)  # no raw identifier
+    assert full.count("\\\\") >= short.count("\\\\")
+    cv = pd.read_csv(helpers.FIGURES / "lasso_cv.csv")
+    assert list(cv.columns) == ["C", "mean_auc", "se_auc", "mean_nonzero"]
+    assert len(cv) == 10 and cv["C"].is_monotonic_increasing

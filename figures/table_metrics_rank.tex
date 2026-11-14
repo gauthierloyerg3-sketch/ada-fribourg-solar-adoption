@@ -1,0 +1,16 @@
+\begin{tabular}{p{3.4cm}rr}
+\toprule
+Model & ROC AUC & Average precision \\
+\midrule
+Random & 0.500 & 0.078 \\
+Roof yield & 0.481 [0.469, 0.493] & 0.072 [0.067, 0.076] \\
+Neighbour PV share & 0.598 [0.580, 0.616] & 0.099 [0.094, 0.104] \\
+LASSO & 0.664 [0.648, 0.678] & 0.129 [0.122, 0.139] \\
+Neural net (16) & 0.661 [0.642, 0.674] & 0.126 [0.119, 0.135] \\
+Neural net (32, 16) & 0.661 [0.646, 0.674] & 0.129 [0.122, 0.137] \\
+\midrule
+\multicolumn{3}{l}{\textit{Sensitivity runs with heating (leakage, upper bound)}} \\
+LASSO + heating source & 0.720 [0.706, 0.731] & 0.166 [0.157, 0.176] \\
+LASSO + heating source and date & 0.720 [0.706, 0.732] & 0.169 [0.159, 0.181] \\
+\bottomrule
+\end{tabular}

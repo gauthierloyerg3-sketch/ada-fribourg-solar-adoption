@@ -1,6 +1,11 @@
 # Progress
 
 Newest on top.
+## 2026-11-14 (T13)
+- Done: every paper table and figure written by code. 05: `table_metrics.tex` and `table_metrics_rank.tex` (capture at 5%/10%; ROC AUC and average precision, `value [low, high]`), same for the 2024-only label (`_2024`), `table_adoption_by_type.tex`, `adoption_by_yield.pdf`, `adoption_by_neighbour_share.pdf`, `map_adoption.pdf` (801 cells of 1 km with at least 10 buildings, test), `lasso_cv.pdf`, restyled `capture_curve.pdf`. 04 (coefficient cell only): `lasso_cv.csv`, readable labels in `table_lasso_coef.tex` (25 largest of 44) and `table_lasso_coef_full.tex`. `helpers.MODEL_LABELS`, `feature_label`, `format_interval`, `latex_escape` with tests; `figures/README.md` index with a test that it matches the folder. No number moved: `metrics.csv`, predictions, GP and segment files identical; 04 about 3.5 min, 05 about 80 s; second run of 05 gives byte-identical files.
+- Found: yield inverted U on both pools (deciles 1 and 9-10 about 5-6%, 8.6-10% between). Adoption rises with the neighbour share quintile (test 3.8% to 11.1%). 4 or more dwellings: 2.9% train, 3.9% test; category 1030/1040 about 4%. Largest LASSO term: three or more dwellings (gklas 1122), -0.388.
+- Next: T14 (wire figures into paper/).
+
 ## 2026-11-14 (T12)
 - Done: descriptive segments (10 standardised traits, PCA, k-means) fitted on train, applied to test; `segments.parquet`, `segments_summary.csv` (04), `table_segments.tex`, `pca_segments.pdf` (05); test `test_segments_have_the_keys_of_model_table`. No existing output changed; 04 about 3.5 min, 05 about 80 s; two runs of 04 give identical segment files.
 - Found: silhouette 0.173 / 0.200 / 0.194 / 0.174 (k = 3 to 6), k = 4 chosen, weak structure (under 0.25). Stability ARI 0.997. Test adoption: segment 2 (small suitable-roof houses, high suitable share) 10.0%, segment 4 (apartment blocks, 5.6 dwellings) 3.6%, segment 1 7.8%, segment 3 (large old buildings, many mixed categories) 5.8%. Segment 4 is nearly the 4+ dwellings bin (95%), so it largely relabels one variable.

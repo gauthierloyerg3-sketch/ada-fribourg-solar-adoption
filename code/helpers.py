@@ -398,3 +398,110 @@ def grid_cell(x, y, size):
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     return np.floor(x / size) * size, np.floor(y / size) * size
+
+
+# Readable names for tables and figures (identifiers stay in the CSV files).
+# Drafted with an AI assistant, see docs/ai_log.md.
+MODEL_LABELS = {
+    "random": "Random",
+    "roof_yield": "Roof yield",
+    "nbr_share": "Neighbour PV share",
+    "lasso": "LASSO",
+    "mlp": "Neural net (16)",
+    "mlp_wide": "Neural net (32, 16)",
+    "lasso_heat_source": "LASSO + heating source",
+    "lasso_heat_date": "LASSO + heating source and date",
+}
+
+# Register code lists (kodes_codes_codici.csv in the register download), wording shortened.
+# GKAT: building category. GKLAS: building class. GBAUP: construction period.
+GKAT_LABELS = {
+    1020: "Residential only",
+    1030: "Residential with ancillary use",
+    1040: "Partly residential",
+}
+GKLAS_LABELS = {
+    1110: "One dwelling",
+    1121: "Two dwellings",
+    1122: "Three or more dwellings",
+    1130: "Communal housing",
+}
+GBAUP_LABELS = {
+    8011: "before 1919",
+    8012: "1919 to 1945",
+    8013: "1946 to 1960",
+    8014: "1961 to 1970",
+    8015: "1971 to 1980",
+    8016: "1981 to 1985",
+    8017: "1986 to 1990",
+    8018: "1991 to 1995",
+    8019: "1996 to 2000",
+    8020: "2001 to 2005",
+    8021: "2006 to 2010",
+    8022: "2011 to 2015",
+    8023: "after 2015",
+}
+
+# Feature columns that are not one level of a categorical variable
+FEATURE_LABELS = {
+    "log_suitable_area": "Log suitable roof area",
+    "log_suitable_area_sq": "Log suitable roof area, squared",
+    "suitable_share": "Suitable share of roof area",
+    "dwellings_1": "Dwelling count: 1",
+    "dwellings_2": "Dwelling count: 2",
+    "dwellings_3": "Dwelling count: 3",
+    "dwellings_4plus": "Dwelling count: 4 or more",
+    "dwellings_missing": "Dwelling count not recorded",
+    "gbaup_missing": "Construction period not recorded",
+    "gklas_other": "Other building class",
+    "gklas_missing": "Building class not recorded",
+    "floors": "Floors",
+    "floors_missing": "Floors not recorded",
+    "log_footprint": "Log footprint",
+    "footprint_missing": "Footprint not recorded",
+    "nbr_pv_share_100": "Neighbour PV share, 100 m",
+    "nbr_pv_share_250": "Neighbour PV share, 250 m",
+    "log1p_nbr_n_250": "Log (1 + buildings within 250 m)",
+    "tariff_dev": "Tariff minus canton median",
+    "heat_updated_after": "Heating record updated after cut-off",
+    "heat_date_missing": "Heating record date missing",
+}
+
+
+def feature_label(name):
+    """Readable label of a feature column of `apply_features`; unknown names come back unchanged.
+
+    Categorical levels keep their register code in brackets, for example
+    "Built 1919 to 1945 (gbaup 8012)". Roof classes and yield bins are named by their level.
+    """
+    if name in FEATURE_LABELS:
+        return FEATURE_LABELS[name]
+    if name.startswith("yield_d"):
+        return f"Roof yield, train decile {name.removeprefix('yield_d')}"
+    if name.startswith("heat_source_"):
+        return f"Heating source: {name.removeprefix('heat_source_').replace('_', ' ')}"
+    prefix, _, level = name.rpartition("_")
+    if prefix == "best_class":
+        return f"Best roof class {level}"
+    tables = {"gkat": GKAT_LABELS, "gklas": GKLAS_LABELS, "gbaup": GBAUP_LABELS}
+    if prefix in tables and level.isdigit() and int(level) in tables[prefix]:
+        text = tables[prefix][int(level)]
+        if prefix == "gbaup":
+            text = f"Built {text}"
+        return f"{text} ({prefix} {level})"
+    return name
+
+
+def latex_escape(text):
+    """Escape the characters of `text` that LaTeX reads as commands (&, %, #, underscore)."""
+    for char in "&%#_":
+        text = text.replace(char, "\\" + char)
+    return text
+
+
+def format_interval(value, low=None, high=None, digits=3):
+    """`value [low, high]` with fixed decimals; the interval is left out if `low` is missing."""
+    text = f"{value:.{digits}f}"
+    if low is None or high is None or pd.isna(low) or pd.isna(high):
+        return text
+    return f"{text} [{low:.{digits}f}, {high:.{digits}f}]"

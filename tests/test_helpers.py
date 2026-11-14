@@ -6,12 +6,15 @@ from helpers import (
     build_pool,
     capture_at_k,
     cluster_bootstrap_indices,
+    feature_label,
     first_pv_date,
     fit_features,
+    format_interval,
     grid_cell,
     grouped_cv,
     has_pv_by,
     heat_source_group,
+    latex_escape,
     make_label,
     neighbour_pv_share,
     pool_status,
@@ -410,3 +413,23 @@ def test_grid_cell_floors_to_the_cell_corner():
     # A 1,000 m grid merges neighbouring 500 m cells
     cx, cy = grid_cell([2575000.0, 2575500.0], [1180000.0, 1180500.0], 1000)
     assert list(cx) == [2575000.0, 2575000.0] and list(cy) == [1180000.0, 1180000.0]
+
+
+def test_feature_label_names_levels_from_the_register_code_lists():
+    assert feature_label("gklas_1122") == "Three or more dwellings (gklas 1122)"
+    assert feature_label("gkat_1040") == "Partly residential (gkat 1040)"
+    assert feature_label("gbaup_8011") == "Built before 1919 (gbaup 8011)"
+    assert feature_label("gbaup_8012") == "Built 1919 to 1945 (gbaup 8012)"
+    assert feature_label("yield_d3") == "Roof yield, train decile 3"
+    assert feature_label("best_class_5") == "Best roof class 5"
+    assert feature_label("heat_source_heat_pump") == "Heating source: heat pump"
+    assert feature_label("tariff_dev") == "Tariff minus canton median"
+    # Unknown names come back unchanged, so a missing label is visible
+    assert feature_label("gbaup_9999") == "gbaup_9999"
+
+
+def test_format_interval_and_latex_escape():
+    assert format_interval(0.19453, 0.17922, 0.2142) == "0.195 [0.179, 0.214]"
+    assert format_interval(0.05) == "0.050"
+    assert format_interval(0.5, np.nan, np.nan) == "0.500"
+    assert latex_escape("a_b & 5%") == "a\\_b \\& 5\\%"

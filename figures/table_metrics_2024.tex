@@ -1,0 +1,16 @@
+\begin{tabular}{p{3.4cm}rr}
+\toprule
+Model & Capture at 5\% & Capture at 10\% \\
+\midrule
+Random & 0.050 & 0.100 \\
+Roof yield & 0.034 [0.027, 0.042] & 0.067 [0.058, 0.076] \\
+Neighbour PV share & 0.066 [0.056, 0.076] & 0.133 [0.119, 0.151] \\
+LASSO & 0.104 [0.092, 0.114] & 0.210 [0.190, 0.235] \\
+Neural net (16) & 0.101 [0.089, 0.114] & 0.200 [0.178, 0.219] \\
+Neural net (32, 16) & 0.103 [0.091, 0.117] & 0.204 [0.185, 0.223] \\
+\midrule
+\multicolumn{3}{l}{\textit{Sensitivity runs with heating (leakage, upper bound)}} \\
+LASSO + heating source & 0.138 [0.123, 0.151] & 0.244 [0.229, 0.259] \\
+LASSO + heating source and date & 0.135 [0.123, 0.149] & 0.255 [0.237, 0.276] \\
+\bottomrule
+\end{tabular}
