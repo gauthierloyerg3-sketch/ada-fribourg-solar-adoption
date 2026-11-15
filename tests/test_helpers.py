@@ -4,20 +4,24 @@ import pytest
 from helpers import (
     apply_features,
     build_pool,
+    build_report,
     capture_at_k,
     cluster_bootstrap_indices,
     feature_label,
     first_pv_date,
     fit_features,
     format_interval,
+    gap_verdict,
     grid_cell,
     grouped_cv,
     has_pv_by,
     heat_source_group,
+    hit_rate_and_lift,
     latex_escape,
     make_label,
     neighbour_pv_share,
     pool_status,
+    spatial_verdict,
 )
 
 
@@ -433,3 +437,139 @@ def test_format_interval_and_latex_escape():
     assert format_interval(0.05) == "0.050"
     assert format_interval(0.5, np.nan, np.nan) == "0.500"
     assert latex_escape("a_b & 5%") == "a\\_b \\& 5\\%"
+
+
+# --- Results report (synthetic frames) ---
+
+REPORT_HEADINGS = [
+    "## What was run",
+    "## Headline results",
+    "## How to read the metrics",
+    "## What the numbers say",
+    "## Robustness, 2024 only",
+    "## Heating sensitivity",
+    "## Spatial structure left (Gaussian process)",
+    "## Segments",
+    "## LASSO penalty",
+    "## Limits",
+    "## Conclusion",
+    "## Where things are",
+]
+
+
+def _metric_rows():
+    n, pos = 1000, 100
+    auc = {"random": 0.5, "roof_yield": 0.45, "nbr_share": 0.6, "lasso": 0.7, "mlp": 0.7}
+    rows = []
+    for split, label in [("train", "y"), ("test", "y"), ("test", "y_2024")]:
+        for model, a in auc.items():
+            row = {
+                "model": model, "split": split, "label": label, "n": n, "positives": pos,
+                "base_rate": 0.1, "capture_5": 0.05 + (a - 0.5) / 2, "capture_10": 0.1 + (a - 0.5),
+                "roc_auc": a, "avg_precision": 0.1 + (a - 0.5) / 2,
+            }  # fmt: skip
+            for m in ["capture_5", "capture_10", "roc_auc", "avg_precision"]:
+                known = split == "test" and model != "random"
+                row[f"{m}_lo"] = row[m] - 0.02 if known else np.nan
+                row[f"{m}_hi"] = row[m] + 0.02 if known else np.nan
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _gap_frame(lasso_vs_nbr=(0.1, 0.05, 0.15), mlp_vs_lasso=(0.0, -0.01, 0.01)):
+    rows = []
+    for label in ["y", "y_2024"]:
+        for pair, (point, lo, hi) in {
+            "lasso minus nbr_share": lasso_vs_nbr,
+            "lasso minus roof_yield": (0.2, 0.15, 0.25),
+            "nbr_share minus roof_yield": (0.1, 0.05, 0.15),
+            "mlp minus lasso": mlp_vs_lasso,
+        }.items():
+            for metric in ["capture_10", "roc_auc"]:
+                row = {"label": label, "pair": pair, "metric": metric}
+                rows.append(row | {"point": point, "lo": lo, "hi": hi})
+    return pd.DataFrame(rows)
+
+
+def _report(gaps=None, p_test=0.4):
+    gp = pd.DataFrame(
+        {
+            "split": ["test", "train"], "cell_size_m": [500, 500], "cells_kept": [10, 12],
+            "log_ml_diff": [0.5, 9.0], "neighbour_corr": [0.01, 0.2],
+            "neighbour_corr_p": [p_test, 0.001],
+        }
+    )  # fmt: skip
+    seg = pd.DataFrame(
+        {
+            "segment": [1, 2], "train_n": [600, 400], "train_rate": [0.12, 0.05],
+            "test_n": [550, 450], "test_rate": [0.11, 0.06],
+        }
+    )  # fmt: skip
+    cv = pd.DataFrame(
+        {"C": [0.01, 0.1, 1.0], "mean_auc": [0.66, 0.68, 0.67], "se_auc": [0.01] * 3}
+    )  # fmt: skip
+    return build_report(
+        _metric_rows(), _gap_frame() if gaps is None else gaps, gp, seg, cv, n_boot=50, seed=3
+    )
+
+
+def test_gap_verdict_three_cases():
+    assert gap_verdict(0.01, 0.05) == "beats"
+    assert gap_verdict(-0.05, -0.01) == "is below"
+    assert gap_verdict(-0.01, 0.05) == "no detectable difference"
+    assert gap_verdict(0.0, 0.05) == "no detectable difference"  # boundary is not a win
+
+
+def test_spatial_verdict_threshold():
+    assert spatial_verdict(0.05) == "no detectable spatial structure"
+    assert spatial_verdict(0.049) == "detectable"
+
+
+def test_hit_rate_and_lift():
+    hit, lift = hit_rate_and_lift(0.2, 100, 1000, 0.1)
+    assert hit == pytest.approx(0.2) and lift == pytest.approx(2.0)
+
+
+def test_report_has_headings_in_order_and_takes_numbers_from_inputs():
+    text = _report()
+    positions = [text.index(h) for h in REPORT_HEADINGS]
+    assert positions == sorted(positions)
+    assert text.endswith("\n") and not text.endswith("\n\n")
+    assert "1,000 buildings" in text and "B = 50, seed 3" in text
+    assert "Chosen C = 0.1 " in text and "inside the grid" in text
+    assert "\u2014" not in text  # no em dash
+
+
+def test_report_conclusion_depends_on_the_verdicts():
+    beats = _report().split("## Conclusion")[1]
+    flat = _report(gaps=_gap_frame(lasso_vs_nbr=(0.01, -0.03, 0.05)))
+    flat = flat.split("## Conclusion")[1]
+    assert "beats both baselines" in beats
+    assert "beats both baselines" not in flat
+    assert "beats the baselines only partly" in flat
+    assert beats != flat
+
+
+def test_report_says_when_a_model_loses_and_when_it_beats_nothing():
+    lose = _report(gaps=_gap_frame(mlp_vs_lasso=(-0.05, -0.08, -0.02)))
+    assert "Neural net (16) is below LASSO" in lose
+    assert "extra capacity costs ranking quality" in lose
+    losing = _gap_frame(lasso_vs_nbr=(-0.1, -0.15, -0.05))
+    losing.loc[losing["pair"] == "lasso minus roof_yield", ["point", "lo", "hi"]] = (
+        -0.1,
+        -0.15,
+        -0.05,
+    )
+    text = _report(gaps=losing).split("## Conclusion")[1]
+    assert "does not beat the baselines" in text
+    assert "beats both baselines" not in text
+
+
+def test_report_spatial_verdict_and_roof_yield_below_random():
+    assert "No detectable spatial structure" in _report(p_test=0.4).split("## Conclusion")[1]
+    assert "Spatial structure is detectable" in _report(p_test=0.01).split("## Conclusion")[1]
+    assert "roof-yield baseline is below random" in _report()
+
+
+def test_report_is_deterministic():
+    assert _report() == _report()

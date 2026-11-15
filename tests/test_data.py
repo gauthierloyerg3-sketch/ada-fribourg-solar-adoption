@@ -228,3 +228,27 @@ def test_requirements_pin_every_package_with_an_exact_version():
         assert re.fullmatch(r"[A-Za-z0-9_.-]+==\d+(\.\d+)*", spec), spec
     names = {spec.split("==")[0].lower() for spec in specs}
     assert {"numpy", "pandas", "pyarrow", "scipy", "scikit-learn", "matplotlib"} <= names
+
+
+def test_report_headline_numbers_match_metrics_csv():
+    # The headline table of figures/report.md is written by 05 from the same frame as metrics.csv
+    report = (helpers.FIGURES / "report.md").read_text(encoding="utf-8")
+    metrics = pd.read_csv(helpers.FIGURES / "metrics.csv")
+    row = metrics[
+        (metrics["model"] == "lasso") & (metrics["split"] == "test") & (metrics["label"] == "y")
+    ]
+    row = row.iloc[0]
+    line = next(
+        x for x in report.splitlines() if x.startswith(f"| {helpers.MODEL_LABELS['lasso']} |")
+    )
+    cells = [c.strip() for c in line.strip("|").split("|")]
+    for cell, key in zip(
+        cells[1:5], ["capture_5", "capture_10", "roc_auc", "avg_precision"], strict=True
+    ):
+        expected = helpers.format_interval(row[key], row[f"{key}_lo"], row[f"{key}_hi"])
+        assert cell == expected, key
+    hit, lift = helpers.hit_rate_and_lift(
+        row["capture_10"], row["positives"], row["n"], row["base_rate"]
+    )
+    assert cells[5] == f"{100 * hit:.1f}%" and cells[6] == f"{lift:.2f}"
+    assert report.endswith("\n") and "\r" not in report

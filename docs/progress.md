@@ -1,6 +1,11 @@
 # Progress
 
 Newest on top.
+## 2026-11-15 (T17)
+- Done: `helpers.build_report` (+ `gap_verdict`, `spatial_verdict`, `hit_rate_and_lift`), final section of 05 writes `figures/report.md` and displays it, tests (verdicts, section order, losing model, determinism, headline table equals `metrics.csv`), CI diff and `figures/README.md` index extended.
+- Found: report is byte-identical on a second run; existing `.tex`, CSVs and `data/processed` unchanged. Headline: LASSO beats both baselines (capture at 10% 0.195, lift 1.95), nets add nothing detectable, no spatial structure on test (p 0.417); 1 of 14 verdicts differs on `y_2024` (`mlp` below LASSO on ROC AUC by 0.008).
+- Next: T15 open items (Nuvolos Python and CPU); owner reads the report against the paper numbers.
+
 ## 2026-11-14 (T15, part)
 - Done: `requirements.txt` pinned with `==` (numpy 2.5.4, scipy 1.18.1, pandas 3.1.1, pyarrow 26.0.1, scikit-learn 1.9.1, matplotlib 3.11.2, nbconvert 7.17.2, ipykernel 7.4.0, pytest 9.2.0, ruff 0.17.5), test that every line is pinned; fresh venv (Python 3.13): install and `pytest` pass (65 tests); every pin has a Python 3.12 wheel. README rewritten (run order, runtime, machine, sources, reproducibility, AI use); `docs/data_sources.md` with URL, version, terms and citation per source.
 - Found: terms read at the source: plants and roofs "Opendata BY: Open use. Must provide the source." (geocat.ch); GWR `license.pdf` inside `fr.zip` (free use, commercial allowed, source required); ElCom cube licence `Open-Use` (LINDAS). opendata.swiss returned 403, so its terms page is not read. Transitive dependencies are not pinned. Stages not re-run.
