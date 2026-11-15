@@ -505,3 +505,528 @@ def format_interval(value, low=None, high=None, digits=3):
     if low is None or high is None or pd.isna(low) or pd.isna(high):
         return text
     return f"{text} [{low:.{digits}f}, {high:.{digits}f}]"
+
+
+# ---------------------------------------------------------------------------
+# Results report (written by 05_figures.ipynb to figures/report.md).
+# Pure functions: DataFrames in, one Markdown string out, no file access.
+# Drafted with an AI assistant, see docs/ai_log.md.
+# ---------------------------------------------------------------------------
+
+REPORT_MAIN_MODELS = ["random", "roof_yield", "nbr_share", "lasso", "mlp", "mlp_wide"]
+REPORT_HEAT_MODELS = ["lasso_heat_source", "lasso_heat_date"]
+REPORT_NETS = ["mlp", "mlp_wide"]
+REPORT_METRIC_NAMES = {
+    "capture_5": "capture at 5%",
+    "capture_10": "capture at 10%",
+    "roc_auc": "ROC AUC",
+    "avg_precision": "average precision",
+}
+REPORT_MODEL_DESCRIPTIONS = {
+    "random": "reference: a random ranking (expected values, no fitting)",
+    "roof_yield": "baseline 1: rank by the yearly electricity yield of the suitable roof",
+    "nbr_share": "baseline 2: rank by the share of buildings within 250 m that already have PV",
+    "lasso": "L1-penalised logistic regression, class weights, penalty chosen by "
+    "cross-validation grouped by municipality (the headline model)",
+    "mlp": "small neural net (scikit-learn MLP, one hidden layer of 16) on the LASSO features",
+    "mlp_wide": "small neural net (hidden layers 32 and 16) on the LASSO features",
+    "lasso_heat_source": "sensitivity run: LASSO plus the heating source (leakage-contaminated)",
+    "lasso_heat_date": "sensitivity run: LASSO plus heating source and record date "
+    "(leakage-contaminated)",
+}
+SPATIAL_P_THRESHOLD = 0.05
+
+
+def gap_verdict(lo, hi):
+    """Verdict on a paired gap (first minus second) from its interval [lo, hi].
+
+    "beats" if the whole interval lies above 0, "is below" if it lies below 0,
+    otherwise "no detectable difference".
+    """
+    if lo > 0:
+        return "beats"
+    if hi < 0:
+        return "is below"
+    return "no detectable difference"
+
+
+def spatial_verdict(p):
+    """ "no detectable spatial structure" when the permutation p is >= 0.05, else "detectable"."""
+    return "no detectable spatial structure" if p >= SPATIAL_P_THRESHOLD else "detectable"
+
+
+def hit_rate_and_lift(capture_10, positives, n, base_rate):
+    """Hit rate among the ceil(0.10 n) buildings ranked first, and its lift over the base rate."""
+    hit = capture_10 * positives / math.ceil(0.10 * n)
+    return hit, hit / base_rate
+
+
+def _pct(x, digits=1):
+    return f"{100 * x:.{digits}f}%"
+
+
+def _pvalue(p):
+    return "< 0.001" if p < 0.001 else f"{p:.3f}"
+
+
+def _label(model):
+    return MODEL_LABELS.get(model, model)
+
+
+def _gap_rows(gaps, label):
+    """Gap rows of one label as {(first, second, metric): (point, lo, hi)}, in input order."""
+    out = {}
+    for row in gaps[gaps["label"] == label].itertuples(index=False):
+        first, second = row.pair.split(" minus ")
+        out[(first, second, row.metric)] = (row.point, row.lo, row.hi)
+    return out
+
+
+def _gap_clause(first, second, metric, values):
+    """One sentence fragment: the verdict on `metric` with the gap and its interval."""
+    point, lo, hi = values
+    verdict = gap_verdict(lo, hi)
+    name = REPORT_METRIC_NAMES[metric]
+    gap = f"gap {format_interval(point, lo, hi)}"
+    a, b = _label(first), _label(second)
+    if verdict == "no detectable difference":
+        return f"no detectable difference between {a} and {b} on {name} ({gap})"
+    return f"{a} {verdict} {b} on {name} ({gap})"
+
+
+def _cap(text):
+    return text[:1].upper() + text[1:]
+
+
+def _pair_bullet(first, second, rows):
+    clauses = [
+        _gap_clause(first, second, m, rows[(first, second, m)])
+        for m in REPORT_METRIC_NAMES
+        if (first, second, m) in rows
+    ]
+    return "- " + _cap("; ".join(clauses)) + "." if clauses else None
+
+
+def _pairs(rows):
+    seen = []
+    for first, second, _ in rows:
+        if (first, second) not in seen:
+            seen.append((first, second))
+    return seen
+
+
+def _net_summary(rows):
+    verdicts = [
+        gap_verdict(v[1], v[2])
+        for (first, second, _), v in rows.items()
+        if first in REPORT_NETS and second == "lasso"
+    ]
+    beats, below = "beats" in verdicts, "is below" in verdicts
+    if beats and below:
+        return "Mixed: a network wins on one metric and loses on another."
+    if beats:
+        return "At least one network improves on the LASSO: interactions add something here."
+    if below:
+        return (
+            "The networks are below the LASSO: interactions add nothing, "
+            "and the extra capacity costs ranking quality."
+        )
+    return "Interactions add nothing detectable over the LASSO."
+
+
+def _metric_row(metrics, model, split, label):
+    sel = metrics[
+        (metrics["model"] == model) & (metrics["split"] == split) & (metrics["label"] == label)
+    ]
+    return sel.iloc[0] if len(sel) else None
+
+
+def _headline_table(metrics):
+    lines = [
+        "| Model | Capture at 5% | Capture at 10% | ROC AUC | Average precision "
+        "| Hit rate, top 10% | Lift, top 10% |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for model in REPORT_MAIN_MODELS + REPORT_HEAT_MODELS:
+        row = _metric_row(metrics, model, "test", "y")
+        if row is None:
+            continue
+        cells = [
+            format_interval(row[m], row[f"{m}_lo"], row[f"{m}_hi"]) for m in REPORT_METRIC_NAMES
+        ]
+        hit, lift = hit_rate_and_lift(
+            row["capture_10"], row["positives"], row["n"], row["base_rate"]
+        )
+        name = _label(model)
+        if model in REPORT_HEAT_MODELS:
+            name += " (leakage, upper bound)"
+        lines.append(f"| {name} | " + " | ".join(cells) + f" | {_pct(hit)} | {lift:.2f} |")
+    return lines
+
+
+def _conclusion(metrics, gaps, gp_summary):
+    out = []
+    rows = _gap_rows(gaps, "y")
+    # 1. LASSO against the baselines
+    verdicts = {
+        (b, m): gap_verdict(rows[("lasso", b, m)][1], rows[("lasso", b, m)][2])
+        for b in ("roof_yield", "nbr_share")
+        for m in ("capture_10", "roc_auc")
+        if ("lasso", b, m) in rows
+    }
+    if verdicts:
+        if all(v == "beats" for v in verdicts.values()) and len(verdicts) == 4:
+            out.append(
+                "The LASSO beats both baselines on capture at 10% and ROC AUC "
+                "(paired intervals above 0)."
+            )
+        elif not any(v == "beats" for v in verdicts.values()):
+            out.append(
+                "The LASSO does not beat the baselines: no paired gap against roof yield or "
+                "neighbour share has an interval above 0. This is a valid result."
+            )
+        else:
+            wins = [
+                f"{_label(b)} on {REPORT_METRIC_NAMES[m]}"
+                for (b, m), v in verdicts.items()
+                if v == "beats"
+            ]
+            rest = [
+                f"{_label(b)} on {REPORT_METRIC_NAMES[m]}"
+                for (b, m), v in verdicts.items()
+                if v != "beats"
+            ]
+            out.append(
+                "The LASSO beats the baselines only partly: it beats "
+                + ", ".join(wins)
+                + "; it does not beat "
+                + ", ".join(rest)
+                + "."
+            )
+    # 2. Lift of the LASSO
+    lasso = _metric_row(metrics, "lasso", "test", "y")
+    if lasso is not None:
+        hit, lift = hit_rate_and_lift(
+            lasso["capture_10"], lasso["positives"], lasso["n"], lasso["base_rate"]
+        )
+        out.append(
+            f"In the top 10% of the LASSO ranking the hit rate is {_pct(hit)} against a base rate "
+            f"of {_pct(lasso['base_rate'])}: lift {lift:.2f} (random: 1.00), capture "
+            f"{_pct(lasso['capture_10'])} of the adopters."
+        )
+    # 3. Networks
+    if any(m in set(metrics["model"]) for m in REPORT_NETS):
+        out.append(_net_summary(rows))
+    # 4. Spatial structure
+    gp = _gp_frame(gp_summary)
+    if "test" in gp.index:
+        p = gp.loc["test", "neighbour_corr_p"]
+        verdict = spatial_verdict(p)
+        if verdict == "detectable":
+            out.append(
+                f"Spatial structure is detectable in the LASSO residuals on the test split "
+                f"(neighbour correlation {gp.loc['test', 'neighbour_corr']:.3f}, p {_pvalue(p)}): "
+                "the features do not capture all of the geography."
+            )
+        else:
+            out.append(
+                f"No detectable spatial structure is left in the LASSO residuals on the test split "
+                f"(p {_pvalue(p)}, threshold {SPATIAL_P_THRESHOLD})."
+            )
+    # 5. Heating upper bound
+    heat = [(m, _metric_row(metrics, m, "test", "y")) for m in REPORT_HEAT_MODELS]
+    heat = [(m, r) for m, r in heat if r is not None]
+    if heat and lasso is not None:
+        best = max(heat, key=lambda t: t[1]["roc_auc"])
+        out.append(
+            f"The heating sensitivity runs reach ROC AUC {best[1]['roc_auc']:.3f} at best against "
+            f"{lasso['roc_auc']:.3f} for the LASSO; this is a leakage-contaminated upper bound, "
+            "not a result."
+        )
+    return out
+
+
+def _gp_frame(gp_summary):
+    gp = gp_summary if "split" in gp_summary.columns else gp_summary.reset_index()
+    return gp.set_index("split")
+
+
+def build_report(metrics, gaps, gp_summary, segments_summary, lasso_cv, n_boot, seed,
+                 cutoffs=None, horizon_years=None):  # fmt: skip
+    """Plain-language run report as one Markdown string (pure: no file access).
+
+    `metrics`: as figures/metrics.csv. `gaps`: columns label, pair ("a minus b" with model
+    identifiers), metric, point, lo, hi. `gp_summary`: as figures/gp_summary.csv.
+    `segments_summary`: as figures/segments_summary.csv. `lasso_cv`: as figures/lasso_cv.csv.
+    Every number comes from the arguments; sentences are templates that depend on the numbers.
+    """
+    cutoffs = CUTOFFS if cutoffs is None else cutoffs
+    horizon = HORIZON_YEARS if horizon_years is None else horizon_years
+    present = set(metrics["model"])
+    L = []
+
+    L += [
+        "# Results report",
+        "",
+        "Generated by `code/05_figures.ipynb`; do not edit by hand. Template drafted with an AI "
+        "assistant (see `docs/ai_log.md`). Aggregated results only, no per-building output. "
+        "This is a run report, not paper text.",
+        "",
+    ]
+
+    # --- What was run
+    L += ["## What was run", ""]
+    for split in ("train", "test"):
+        row = _metric_row(metrics, "random", split, "y")
+        start = pd.Timestamp(cutoffs[split]) + pd.Timedelta(days=1)
+        end = pd.Timestamp(cutoffs[split]) + pd.DateOffset(years=horizon)
+        L.append(
+            f"- {split.capitalize()} pool, cut-off {cutoffs[split]}: {int(row['n']):,} buildings, "
+            f"{int(row['positives']):,} adopters (first PV {start.date()} to {end.date()}), "
+            f"base rate {_pct(row['base_rate'])}."
+        )
+    row24 = _metric_row(metrics, "random", "test", "y_2024")
+    if row24 is not None:
+        start = pd.Timestamp(cutoffs["test"]) + pd.Timedelta(days=1)
+        L.append(
+            f"- Robustness label `y_2024`: same test pool and ranking, first PV in {start.year}: "
+            f"{int(row24['positives']):,} adopters, base rate {_pct(row24['base_rate'])}."
+        )
+    L.append("- Models:")
+    for model in REPORT_MAIN_MODELS + REPORT_HEAT_MODELS:
+        if model in present:
+            L.append(f"  - `{model}` ({_label(model)}): {REPORT_MODEL_DESCRIPTIONS[model]}.")
+    L += [
+        f"- Intervals: 95% percentile intervals from a cluster bootstrap that resamples whole "
+        f"municipalities, B = {n_boot}, seed {seed}; the same draws serve every model, so gaps "
+        "between models are paired.",
+        "",
+    ]
+
+    # --- Headline results
+    L += [
+        "## Headline results",
+        "",
+        "Test pool, label `y` (first PV after the test cut-off). Cells are `value [95% interval]`.",
+        "",
+    ]
+    L += _headline_table(metrics)
+    L.append("")
+
+    # --- How to read the metrics
+    L += [
+        "## How to read the metrics",
+        "",
+        "- Capture at k: share of all adopters found in the top k of the ranking. Random gives k.",
+        "- ROC AUC: probability that a random adopter is ranked above a random non-adopter. "
+        "Random gives 0.5.",
+        "- Average precision: area under the precision-recall curve. Random gives the base rate.",
+        "- Hit rate (top 10%): share of adopters among the buildings ranked in the top 10%. "
+        "Lift: hit rate divided by the base rate; random gives 1.",
+        "",
+    ]
+
+    # --- What the numbers say
+    rows_y = _gap_rows(gaps, "y")
+    L += [
+        "## What the numbers say",
+        "",
+        "Test, label `y`. Gaps are first minus second, paired bootstrap.",
+        "",
+    ]
+    for first, second in _pairs(rows_y):
+        if first in REPORT_HEAT_MODELS or first in REPORT_NETS:
+            continue
+        bullet = _pair_bullet(first, second, rows_y)
+        if bullet:
+            L.append(bullet)
+    roof = _metric_row(metrics, "roof_yield", "test", "y")
+    if roof is not None:
+        lo, hi = roof["roc_auc_lo"], roof["roc_auc_hi"]
+        if hi < 0.5:
+            says = "is below random: the interval lies below 0.5"
+        elif lo > 0.5:
+            says = "is above random: the interval lies above 0.5"
+        else:
+            says = "is not distinguishable from random: the interval contains 0.5"
+        L.append(
+            f"- The roof-yield baseline {says} "
+            f"(ROC AUC {format_interval(roof['roc_auc'], lo, hi)})."
+        )
+    parts = []
+    for model in ["lasso"] + REPORT_NETS:
+        tr = _metric_row(metrics, model, "train", "y")
+        te = _metric_row(metrics, model, "test", "y")
+        if tr is not None and te is not None:
+            parts.append(
+                f"{_label(model)} {tr['roc_auc']:.3f} to {te['roc_auc']:.3f} "
+                f"({te['roc_auc'] - tr['roc_auc']:+.3f})"
+            )
+    if parts:
+        L.append(
+            "- ROC AUC, train (in-sample) to test (out-of-time): " + "; ".join(parts) + ". "
+            "The train value is fitted on the same buildings; the test value is the one to trust."
+        )
+    net_bullet = [
+        _gap_clause(a, b, m, rows_y[(a, b, m)])
+        for (a, b, m) in rows_y
+        if a in REPORT_NETS and b == "lasso"
+    ]
+    if net_bullet:
+        L.append(
+            "- Neural nets against the LASSO: "
+            + "; ".join(net_bullet)
+            + ". "
+            + _net_summary(rows_y)
+        )
+    L.append("")
+
+    # --- Robustness
+    rows_24 = _gap_rows(gaps, "y_2024")
+    L += ["## Robustness, 2024 only", "", "Label `y_2024`, same test pool and ranking.", ""]
+    for first, second in _pairs(rows_24):
+        if first in REPORT_HEAT_MODELS:
+            continue
+        bullet = _pair_bullet(first, second, rows_24)
+        if bullet:
+            L.append(bullet)
+    common = [k for k in rows_y if k in rows_24]
+    differ = [
+        k for k in common
+        if gap_verdict(rows_y[k][1], rows_y[k][2]) != gap_verdict(rows_24[k][1], rows_24[k][2])
+    ]  # fmt: skip
+    if not common:
+        L.append("")
+    elif not differ:
+        L += ["", f"All {len(common)} verdicts agree with the headline label."]
+    else:
+        names = "; ".join(
+            f"{_label(a)} vs {_label(b)} on {REPORT_METRIC_NAMES[m]}" for a, b, m in differ
+        )
+        L += [
+            "",
+            f"{len(differ)} of {len(common)} verdicts differ from the headline label: {names}.",
+        ]
+    L.append("")
+
+    # --- Heating sensitivity
+    L += [
+        "## Heating sensitivity",
+        "",
+        "Warning: these runs use today's register snapshot, are contaminated by leakage "
+        "(a heating record dated after the cut-off tells the outcome) and are an upper bound, "
+        "never a candidate model.",
+        "",
+    ]
+    lasso_test = _metric_row(metrics, "lasso", "test", "y")
+    for model in REPORT_HEAT_MODELS:
+        row = _metric_row(metrics, model, "test", "y")
+        if row is None or lasso_test is None:
+            continue
+        clauses = [
+            _gap_clause(model, "lasso", m, rows_y[(model, "lasso", m)])
+            for m in ("capture_10", "roc_auc")
+            if (model, "lasso", m) in rows_y
+        ]
+        L.append(
+            f"- {_label(model)}: ROC AUC {row['roc_auc']:.3f} against {lasso_test['roc_auc']:.3f} "
+            f"for the LASSO, capture at 10% {_pct(row['capture_10'])} against "
+            f"{_pct(lasso_test['capture_10'])}"
+            + (": " + "; ".join(clauses) if clauses else "")
+            + "."
+        )
+    L.append("")
+
+    # --- Gaussian process
+    gp = _gp_frame(gp_summary)
+    L += [
+        "## Spatial structure left (Gaussian process)",
+        "",
+        "Gaussian process on the LASSO residuals averaged per grid cell. Verdict rule: "
+        f"permutation p of the neighbour correlation >= {SPATIAL_P_THRESHOLD} means no detectable "
+        "spatial structure, otherwise detectable.",
+        "",
+    ]
+    for split in ("train", "test"):
+        if split not in gp.index:
+            continue
+        r = gp.loc[split]
+        L.append(
+            f"- {split.capitalize()}: {int(r['cells_kept']):,} cells of "
+            f"{int(r['cell_size_m'])} m kept; log marginal likelihood gain over the null "
+            f"{r['log_ml_diff']:.2f}; neighbour correlation {r['neighbour_corr']:.3f} "
+            f"(permutation p {_pvalue(r['neighbour_corr_p'])}): "
+            f"{spatial_verdict(r['neighbour_corr_p'])}."
+        )
+    L += [
+        "- The train split is in-sample (the LASSO was fitted on it); the test split is the "
+        "out-of-time check.",
+        "",
+    ]
+
+    # --- Segments
+    seg = segments_summary
+    L += [
+        "## Segments",
+        "",
+        f"k = {len(seg)} segments (PCA and k-means fitted on the train pool). Segments are "
+        "descriptive only: no claim of causes or of predictive value.",
+        "",
+        "| Segment | Train buildings | Train adoption | Test buildings | Test adoption |",
+        "|---|---|---|---|---|",
+    ]
+    for r in seg.itertuples(index=False):
+        L.append(
+            f"| {int(r.segment)} | {int(r.train_n):,} | {_pct(r.train_rate)} "
+            f"| {int(r.test_n):,} | {_pct(r.test_rate)} |"
+        )
+    L.append("")
+
+    # --- LASSO penalty
+    best = lasso_cv.loc[lasso_cv["mean_auc"].idxmax()]
+    grid = lasso_cv["C"]
+    if best["C"] == grid.max():
+        edge = "at the upper edge of the grid (weakest penalty tested)"
+    elif best["C"] == grid.min():
+        edge = "at the lower edge of the grid (strongest penalty tested)"
+    else:
+        edge = "inside the grid, not at an edge"
+    L += [
+        "## LASSO penalty",
+        "",
+        f"Chosen C = {best['C']:.3g} with mean grouped-CV ROC AUC {best['mean_auc']:.3f} "
+        f"(SE {best['se_auc']:.3f}), {edge}; grid of {len(lasso_cv)} values from "
+        f"{grid.min():.3g} to {grid.max():.3g}.",
+        "",
+    ]
+
+    # --- Limits
+    L += [
+        "## Limits",
+        "",
+        "- Register lag: 2025 is not fully registered, so the 2024-2025 label is understated "
+        "for the last months; `y_2024` is the check.",
+        "- Roof coverage: the roof file is the 2023 release; buildings without a roof record "
+        "are dropped from the pool and adopt less.",
+        "- Snapshot register: attributes are today's values; demolished buildings are missing.",
+        "- Same buildings in train and test: out-of-time test, not out-of-sample across buildings.",
+        "- Tariff and heating effects are not identified.",
+        "- No causal claims.",
+        "",
+    ]
+
+    # --- Conclusion
+    L += ["## Conclusion", ""]
+    L += [f"- {s}" for s in _conclusion(metrics, gaps, gp_summary)]
+    L.append("")
+
+    # --- Where things are
+    L += [
+        "## Where things are",
+        "",
+        "- `figures/README.md`: index of every file in `figures/`.",
+        "- `figures/metrics.csv`: all metrics with intervals.",
+        "- `docs/decisions.md`: decisions and their reasons.",
+        "",
+    ]
+    return "\n".join(L)

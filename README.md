@@ -37,6 +37,9 @@ Development: a small cloud container (4 CPU cores, 15 GB memory, no GPU). Stages
 ## Outputs
 `figures/` holds the PDF figures, the `.tex` table fragments used by the paper and `metrics.csv`; `figures/README.md` lists each file and the stage that writes it. Paper outputs are aggregated; the building-level extracts are only in `data/processed/`.
 
+## Results report
+`figures/report.md` is a plain-language report of the last run (what was run, headline numbers with intervals, verdicts, limits), written by `code/05_figures.ipynb` and shown at the end of that notebook. It is a run report, not paper text.
+
 ## Paper
 The LaTeX skeleton is in `paper/` (build with `latexmk -pdf main.tex` from that folder; see `paper/README.md`). It pulls every figure and table from `figures/`; the text is written by the author.
 
@@ -49,7 +52,7 @@ All four are Swiss federal open data, with source attribution required. URLs, ve
 
 ## Reproducibility notes
 - The extracts in `data/processed/` are committed; `data/processed/sources.json` holds the URL, size, time and sha256 of each download.
-- CI re-runs stages 02 to 05 and fails if the regenerated tables (`figures/*.tex`) and the CSVs `metrics.csv`, `lasso_cv.csv`, `segments_summary.csv` differ from the committed files. PDFs and `gp_summary.csv` are not compared because they can differ between machines.
+- CI re-runs stages 02 to 05 and fails if the regenerated tables (`figures/*.tex`) and the CSVs `metrics.csv`, `lasso_cv.csv`, `segments_summary.csv`, `report.md` differ from the committed files. PDFs and `gp_summary.csv` are not compared because they can differ between machines.
 - Seeds are fixed. The neural network scores are stored at 4 decimals, the others at 6, so that small floating-point differences between machines do not change the ranking.
 
 ## AI use

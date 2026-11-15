@@ -5,6 +5,7 @@ Index for the author, not paper text. Every file in this folder is listed once; 
 | File | Shows | Stage |
 |---|---|---|
 | `metrics.csv` | Capture at 5% and 10%, ROC AUC, average precision per model, split and label, with 95% bootstrap intervals on test rows | 05 |
+| `report.md` | Generated results report: what was run, headline table with hit rate and lift, verdicts on the paired gaps, 2024-only robustness, heating upper bound, spatial structure, segments, LASSO penalty, limits, conclusion; run report, not paper text | 05 |
 | `table_metrics.tex` | Test pool, first PV 2024-2025: capture at 5% and 10% with intervals, main models then heating sensitivity runs | 05 |
 | `table_metrics_rank.tex` | Same label: ROC AUC and average precision with intervals | 05 |
 | `table_metrics_2024.tex` | Test pool, first PV 2024 only: capture at 5% and 10% with intervals | 05 |

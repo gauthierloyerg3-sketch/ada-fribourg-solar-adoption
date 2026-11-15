@@ -28,7 +28,7 @@ jobs:
       - run: jupyter nbconvert --to notebook --execute --output-dir "$RUNNER_TEMP/nb" code/05_figures.ipynb
       # Fail if a regenerated output differs from the committed file: every table fragment and the
       # three CSVs the paper relies on. PDFs and gp_summary.csv are left out: they can differ between machines.
-      - run: git diff --exit-code -- 'figures/*.tex' figures/metrics.csv figures/lasso_cv.csv figures/segments_summary.csv
+      - run: git diff --exit-code -- 'figures/*.tex' figures/metrics.csv figures/lasso_cv.csv figures/segments_summary.csv figures/report.md
 
   # Compile paper/main.tex to check that the fragments parse. Uploads nothing.
   paper:

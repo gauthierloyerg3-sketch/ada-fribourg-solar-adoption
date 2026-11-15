@@ -66,7 +66,7 @@ Raw downloads go to `data/raw/` (git-ignored). Everything below is committed in 
 ## Interfaces
 - Stages: `code/01_get_data.py` -> `02_clean.ipynb` -> `03_features.ipynb` -> `04_model.ipynb` -> `05_figures.ipynb`. Each reads only what the previous stage saved. Only 01 touches the network.
 - `code/helpers.py`: `build_pool(buildings, pv, cutoff)`, `make_label(pool, pv, start, end)`, `neighbour_pv_share(xy, has_pv, radius)`, `capture_at_k(y, score, k)`, `grouped_cv(...)`.
-- Outputs: `figures/*.pdf` and `figures/*.tex` (tables), plus `figures/metrics.csv`.
+- Outputs: `figures/*.pdf` and `figures/*.tex` (tables), plus `figures/metrics.csv` and `figures/report.md` (generated results report, plain language, aggregated).
 
 ## Verified on the files of 2026-11-13
 - Plant register: `EGID` column present. FR PV: 22,360 plants, 99.1% with EGID, 99.8% of those found in GWR FR. 628 plants share a building.
